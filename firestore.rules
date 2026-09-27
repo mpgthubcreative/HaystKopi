@@ -1,0 +1,153 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentRole() {
+      return isSignedIn() && userDoc().data.role != null ? userDoc().data.role : null;
+    }
+
+    function currentStatus() {
+      return isSignedIn() && userDoc().data.status != null ? userDoc().data.status : null;
+    }
+
+    function isActiveAdmin() {
+      return isSignedIn()
+        && currentStatus() == 'active'
+        && (currentRole() == 'owner' || currentRole() == 'admin');
+    }
+
+    function isOwner() {
+      return isSignedIn()
+        && currentStatus() == 'active'
+        && currentRole() == 'owner';
+    }
+
+    // Whole number, zero or greater. Also the reason a bypass attempt (typed
+    // wrong, deleted, or a full-document replace that omits the field
+    // entirely) gets denied: referencing a missing field errors, and
+    // Firestore rules deny the request when an allow expression errors.
+    function isValidInventory() {
+      return request.resource.data.inventory is int
+        && request.resource.data.inventory >= 0;
+    }
+
+    function isValidInventoryLog() {
+      return request.resource.data.previousInventory is int
+        && request.resource.data.previousInventory >= 0
+        && request.resource.data.newInventory is int
+        && request.resource.data.newInventory >= 0
+        && request.resource.data.changeAmount is int
+        && request.resource.data.changeAmount
+             == request.resource.data.newInventory - request.resource.data.previousInventory;
+    }
+
+    // Default deny everything not explicitly matched below.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // users/{uid} — role + status live here. Frontend role checks are never
+    // trusted; this is the actual enforcement point.
+    //
+    // Phase 12: tightened so an ADMIN can read only their OWN profile (still
+    // needed for login/route-guard checks) but can no longer enumerate the
+    // rest of the team by reading other users/{uid} docs or listing the
+    // collection — only an OWNER can do that now. Verified safe: nothing in
+    // the client code reads any users/{uid} doc other than the signed-in
+    // user's own (see firebase/auth-helpers.js); Team Management itself goes
+    // through list-team.js (Admin SDK, bypasses these rules) instead of a
+    // client-side collection read.
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isOwner());
+      // Profile docs are created via a trusted server context (Team
+      // Management's create-admin.js) or Firebase Console, not by client
+      // writes.
+      allow create: if false;
+      allow update: if isOwner();
+      allow delete: if isOwner();
+    }
+
+    // products/{productId}
+    // Public catalog read. Writes are split by field so a role check alone
+    // can't protect inventory — the inventory FIELD itself is gated:
+    //   - OWNER: unrestricted create/update/delete, but the resulting
+    //     inventory value must still be a valid whole number >= 0 — even
+    //     OWNER can't write -5.
+    //   - ADMIN: may update ordinary catalog fields (name, description,
+    //     price, bottleSize, image, galleryImages, etc.) but the write is
+    //     rejected outright if the inventory value differs from what's
+    //     already stored — including a payload that deletes the field or
+    //     replaces the whole document without it, since a missing field
+    //     fails the equality check (see isValidInventory's comment).
+    //   - Everyone else: read-only.
+    match /products/{productId} {
+      allow read: if true;
+
+      // Initial inventory is set at creation time, so creation is owner-only
+      // for now — an admin-created product would otherwise let an admin pick
+      // any starting inventory value, which is the same loophole as editing it.
+      allow create: if isOwner() && isValidInventory();
+
+      allow update: if (isOwner() && isValidInventory())
+        || (isActiveAdmin() && request.resource.data.inventory == resource.data.inventory);
+
+      // Deleting removes the inventory along with the product, so this stays
+      // owner-only too.
+      allow delete: if isOwner();
+    }
+
+    // orders/{orderId}
+    // Read stays client-SDK (admin/owner only) for the Orders admin pages —
+    // reading isn't dangerous and Firestore's own query/sort/pagination is
+    // more efficient than adding a backend endpoint just to list orders.
+    //
+    // Write is now fully denied to every client, including an active
+    // owner/admin: every mutation (status change, payment status, notes,
+    // cancel, delete, test-flag) goes through a Netlify Function using the
+    // Admin SDK — see netlify/functions/update-order-status.js,
+    // update-payment-status.js, update-order-notes.js,
+    // update-order-test-flag.js, cancel-order.js, delete-order.js. This
+    // tightens the previous isActiveAdmin() write (which predates any of
+    // those endpoints existing) so a compromised/modified admin browser
+    // can no longer write arbitrary order fields directly.
+    match /orders/{orderId} {
+      allow read: if isActiveAdmin();
+      allow write: if false;
+    }
+
+    // wholesaleInquiries/{inquiryId}
+    // TEMPORARY: same reasoning as orders — public submission comes later
+    // once a secure, abuse-resistant write path is designed.
+    match /wholesaleInquiries/{inquiryId} {
+      allow read: if isActiveAdmin();
+      allow write: if isActiveAdmin();
+    }
+
+    // inventoryLogs/{logId}
+    // Audit trail for manual inventory changes. Only OWNER can write one —
+    // since only OWNER can ever legitimately change inventory (see
+    // products/{productId} above), letting ADMIN write here too would let a
+    // modified client fabricate fake history even though it can't touch the
+    // real inventory number. Append-only: no update/delete, ever.
+    match /inventoryLogs/{logId} {
+      allow read: if isActiveAdmin();
+      allow create: if isOwner() && isValidInventoryLog();
+      allow update, delete: if false;
+    }
+
+    // settings/{settingId} — business-wide config, owner-managed.
+    match /settings/{settingId} {
+      allow read: if isActiveAdmin();
+      allow write: if isOwner();
+    }
+  }
+}

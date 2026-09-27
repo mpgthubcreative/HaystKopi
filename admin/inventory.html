@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory — Hayst Kopi Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body data-page="inventory" data-required-role="owner">
+
+<div id="authChecking" class="auth-checking">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>Checking your session…</span>
+</div>
+
+<div id="appShell" class="admin-shell" hidden>
+
+  <header class="admin-topbar">
+    <a href="index.html" class="admin-brand">
+      <img src="../assets/logo.png" alt="">
+      <span>Hayst Kopi Admin</span>
+    </a>
+
+    <div class="account-area">
+      <div class="account-info">
+        <div id="accountName" class="account-name"></div>
+        <span id="roleBadge" class="role-badge"></span>
+      </div>
+      <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="admin-body-row">
+    <nav class="admin-nav" aria-label="Admin navigation">
+      <a href="index.html" data-nav="dashboard">Dashboard</a>
+      <a href="orders.html" data-nav="orders">Orders</a>
+      <a href="products.html" data-nav="products">Products</a>
+      <a href="inventory.html" data-nav="inventory">Inventory</a>
+      <a href="wholesale.html" data-nav="wholesale">Wholesale</a>
+      <a href="team.html" data-nav="team">Team</a>
+      <a href="settings.html" data-nav="settings">Settings</a>
+    </nav>
+
+    <main class="admin-main">
+      <h1>Inventory</h1>
+      <p class="lead">Owner-only. Every change here is recorded in the inventory log.</p>
+      <p id="inventoryState" class="state-message">Loading products…</p>
+      <div id="inventoryList" class="product-list"></div>
+    </main>
+  </div>
+</div>
+
+<script type="module" src="admin.js"></script>
+<script type="module" src="inventory.js"></script>
+</body>
+</html>

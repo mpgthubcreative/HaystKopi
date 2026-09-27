@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmation — Hayst Kopi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="checkout.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html" class="logo-link" aria-label="Hayst Kopi, home">
+    <img src="assets/logo.png" alt="Hayst Kopi" class="logo">
+  </a>
+</header>
+
+<main class="checkout-page">
+
+  <div id="confirmationEmpty" class="checkout-state" hidden>
+    <p>We couldn't find a recent order to show. If you just placed one, check the confirmation message on the checkout page.</p>
+    <a href="index.html" class="outline-btn-small">Back to Shop</a>
+  </div>
+
+  <div id="confirmationContent" class="confirmation-content" hidden>
+    <p class="confirmation-eyebrow">Order Received</p>
+    <h1 class="confirmation-heading">Thank you, <span id="confCustomerName"></span>!</h1>
+    <p class="confirmation-sub">We've received your order. Here are your details:</p>
+
+    <div class="order-summary confirmation-card">
+      <div class="info-row"><span class="info-label">Order Number</span><span id="confOrderNumber"></span></div>
+      <div class="info-row"><span class="info-label">Product</span><span id="confProduct"></span></div>
+      <div class="info-row"><span class="info-label">Quantity</span><span id="confQuantity"></span></div>
+      <div class="info-row"><span class="info-label">Total</span><span id="confTotal"></span></div>
+      <div class="info-row"><span class="info-label">Fulfillment</span><span id="confFulfillment"></span></div>
+      <div class="info-row"><span class="info-label">Payment Method</span><span id="confPayment"></span></div>
+      <div class="info-row"><span class="info-label">Order Status</span><span id="confStatus"></span></div>
+    </div>
+
+    <section id="paymentSection" class="order-summary confirmation-card" hidden>
+      <p class="panel-label">Payment Required</p>
+
+      <div class="info-row"><span class="info-label">Amount Due</span><span id="payAmountDue"></span></div>
+      <div class="info-row"><span class="info-label">Payment Method</span><span id="payMethodLabel"></span></div>
+
+      <div id="payGcashDetails" class="fulfillment-panel" hidden>
+        <div class="info-row"><span class="info-label">Account Name</span><span id="payGcashAccountName"></span></div>
+        <div class="info-row"><span class="info-label">GCash Number</span><span id="payGcashNumber"></span></div>
+        <img id="payGcashQr" class="payment-qr" src="" alt="GCash QR code" hidden>
+      </div>
+
+      <div id="payBankDetails" class="fulfillment-panel" hidden>
+        <div class="info-row"><span class="info-label">Bank</span><span id="payBankName"></span></div>
+        <div class="info-row"><span class="info-label">Account Name</span><span id="payBankAccountName"></span></div>
+        <div class="info-row"><span class="info-label">Account Number</span><span id="payBankAccountNumber"></span></div>
+      </div>
+
+      <div id="payUploadStep" class="payment-step">
+        <p class="panel-note">Upload a screenshot of your payment as proof.</p>
+        <input type="file" id="payProofFile" accept="image/jpeg,image/png,image/webp">
+        <button type="button" id="payUploadBtn" class="cta-btn">Upload Payment Proof</button>
+        <p id="payUploadState" class="delivery-calc-state" hidden></p>
+      </div>
+
+      <div id="payReferenceStep" class="payment-step" hidden>
+        <p class="panel-label">Reference Number Detected</p>
+        <div class="field">
+          <label for="payReferenceInput">Reference / Transaction Number</label>
+          <input type="text" id="payReferenceInput" autocomplete="off">
+        </div>
+        <p class="panel-note">Please check that this matches your payment receipt.</p>
+        <button type="button" id="payConfirmBtn" class="cta-btn">Confirm Payment Details</button>
+        <button type="button" id="payReplaceBtn" class="btn-quiet">Replace Screenshot</button>
+        <p id="payConfirmState" class="delivery-calc-state" hidden></p>
+      </div>
+
+      <div id="payDoneStep" class="payment-step" hidden>
+        <p class="place-order-message">Thanks! We'll verify your payment and update your order status.</p>
+        <button type="button" id="payReplaceAgainBtn" class="btn-quiet">Replace Payment Proof</button>
+      </div>
+    </section>
+
+    <div class="confirmation-actions">
+      <a href="index.html" class="cta-btn confirmation-back-btn">Back to Shop</a>
+      <a href="order-status.html" id="trackOrderLink" class="outline-btn-small">Track This Order</a>
+    </div>
+  </div>
+
+</main>
+
+<script type="module" src="order-confirmation.js"></script>
+</body>
+</html>

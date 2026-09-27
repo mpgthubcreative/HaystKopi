@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Sign In — Hayst Kopi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div id="authChecking" class="auth-checking">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>Checking your session…</span>
+</div>
+
+<div id="loginCard" class="login-page" hidden>
+  <div class="login-card">
+    <img src="../assets/logo.png" alt="Hayst Kopi" class="login-logo">
+    <h1 class="login-heading">Admin Sign In</h1>
+
+    <form id="loginForm" class="login-form" novalidate>
+      <p id="errorBanner" class="error-banner" role="alert" hidden></p>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit" id="signInBtn" class="submit-btn">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="login.js"></script>
+</body>
+</html>

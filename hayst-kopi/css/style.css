@@ -11,8 +11,6 @@
   --bg: #F8F2EC;
   --text-muted: #6B5647;
   --white: #FFFCF9;
-  --stock-out: #9A3B2E;
-  --stock-out-bg: #F3DFD9;
 
   --font-display: 'Poppins', system-ui, sans-serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
@@ -198,52 +196,6 @@ a:focus-visible {
 
 .volume-desktop {
   display: none;
-}
-
-.stock-badge {
-  align-self: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--matcha);
-  color: var(--espresso);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.stock-badge:empty {
-  display: none;
-}
-
-.stock-badge.out-of-stock {
-  background: var(--stock-out-bg);
-  color: var(--stock-out);
-}
-
-.product-notice {
-  margin: 8px 0 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--stock-out);
-}
-
-.qty-limit-message {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--text-muted);
-}
-
-.cta-btn:disabled {
-  opacity: 0.5;
-  filter: none;
-  cursor: not-allowed;
-}
-
-.step-btn:disabled,
-.flavor-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 /* ---------- Flavor selector ---------- */

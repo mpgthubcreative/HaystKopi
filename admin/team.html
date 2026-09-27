@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team — Hayst Kopi Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body data-page="team" data-required-role="owner">
+
+<div id="authChecking" class="auth-checking">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>Checking your session…</span>
+</div>
+
+<div id="appShell" class="admin-shell" hidden>
+
+  <header class="admin-topbar">
+    <a href="index.html" class="admin-brand">
+      <img src="../assets/logo.png" alt="">
+      <span>Hayst Kopi Admin</span>
+    </a>
+
+    <div class="account-area">
+      <div class="account-info">
+        <div id="accountName" class="account-name"></div>
+        <span id="roleBadge" class="role-badge"></span>
+      </div>
+      <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="admin-body-row">
+    <nav class="admin-nav" aria-label="Admin navigation">
+      <a href="index.html" data-nav="dashboard">Dashboard</a>
+      <a href="orders.html" data-nav="orders">Orders</a>
+      <a href="products.html" data-nav="products">Products</a>
+      <a href="inventory.html" data-nav="inventory">Inventory</a>
+      <a href="wholesale.html" data-nav="wholesale">Wholesale</a>
+      <a href="team.html" data-nav="team">Team</a>
+      <a href="settings.html" data-nav="settings">Settings</a>
+    </nav>
+
+    <main class="admin-main">
+      <h1>Team</h1>
+      <p class="lead">Manage Admin accounts. Disable suspends access temporarily and can be reversed; Remove permanently deletes the account. Owner accounts can't be changed here.</p>
+
+      <section class="dashboard-section">
+        <h2>Add Admin</h2>
+        <form id="addAdminForm" class="add-admin-form">
+          <div class="field-row">
+            <div class="field">
+              <label for="newAdminName">Name</label>
+              <input type="text" id="newAdminName" required>
+              <p class="field-error" data-error-for="name" hidden></p>
+            </div>
+            <div class="field">
+              <label for="newAdminEmail">Email</label>
+              <input type="email" id="newAdminEmail" required>
+              <p class="field-error" data-error-for="email" hidden></p>
+            </div>
+          </div>
+          <button type="submit" id="addAdminBtn" class="btn-primary-sm">Add Admin</button>
+          <p id="addAdminStatus" class="save-status" hidden></p>
+
+          <div id="passwordLinkBox" class="link-box" hidden>
+            <p>Account created. Send this one-time password setup link to the new Admin — it won't be shown again:</p>
+            <code id="passwordLinkText"></code>
+            <button type="button" id="copyPasswordLinkBtn" class="btn-quiet">Copy Link</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="dashboard-section">
+        <h2>Team Members</h2>
+        <p id="teamState" class="state-message">Loading team…</p>
+        <div id="teamList" class="team-list"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h2 id="confirmModalTitle"></h2>
+    <p id="confirmModalBody"></p>
+    <div class="modal-actions">
+      <button type="button" id="confirmModalCancelBtn" class="btn-quiet"></button>
+      <button type="button" id="confirmModalConfirmBtn" class="btn-danger"></button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="admin.js"></script>
+<script type="module" src="team.js"></script>
+</body>
+</html>

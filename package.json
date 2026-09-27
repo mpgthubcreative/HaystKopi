@@ -1,0 +1,10 @@
+{
+  "name": "hayst-kopi",
+  "private": true,
+  "description": "Hayst Kopi — static storefront + Netlify Functions backend",
+  "dependencies": {
+    "@google-cloud/vision": "^4.0.0",
+    "exceljs": "^4.4.0",
+    "firebase-admin": "^12.6.0"
+  }
+}

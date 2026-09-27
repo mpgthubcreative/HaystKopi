@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orders — Hayst Kopi Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body data-page="orders">
+
+<div id="authChecking" class="auth-checking">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>Checking your session…</span>
+</div>
+
+<div id="appShell" class="admin-shell" hidden>
+
+  <header class="admin-topbar">
+    <a href="index.html" class="admin-brand">
+      <img src="../assets/logo.png" alt="">
+      <span>Hayst Kopi Admin</span>
+    </a>
+
+    <div class="account-area">
+      <div class="account-info">
+        <div id="accountName" class="account-name"></div>
+        <span id="roleBadge" class="role-badge"></span>
+      </div>
+      <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="admin-body-row">
+    <nav class="admin-nav" aria-label="Admin navigation">
+      <a href="index.html" data-nav="dashboard">Dashboard</a>
+      <a href="orders.html" data-nav="orders">Orders</a>
+      <a href="products.html" data-nav="products">Products</a>
+      <a href="inventory.html" data-nav="inventory">Inventory</a>
+      <a href="wholesale.html" data-nav="wholesale">Wholesale</a>
+      <a href="team.html" data-nav="team">Team</a>
+      <a href="settings.html" data-nav="settings">Settings</a>
+    </nav>
+
+    <main class="admin-main">
+      <h1>Orders</h1>
+      <p class="lead">Manage customer orders — status, payment, cancellation.</p>
+
+      <div class="orders-toolbar">
+        <input type="search" id="orderSearchInput" placeholder="Search order #, name, or mobile…">
+        <select id="sortSelect" aria-label="Sort orders">
+          <option value="desc">Newest first</option>
+          <option value="asc">Oldest first</option>
+        </select>
+        <button type="button" id="exportBtn" class="btn-quiet">Export</button>
+      </div>
+
+      <div class="orders-filters">
+        <div class="filter-group">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="all">All</option>
+            <option value="PENDING">Pending</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="PREPARING">Preparing</option>
+            <option value="READY_FOR_PICKUP">Ready for Pickup</option>
+            <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="fulfillmentFilter">Fulfillment</label>
+          <select id="fulfillmentFilter">
+            <option value="all">All</option>
+            <option value="pickup">Pickup</option>
+            <option value="delivery">Delivery</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="paymentFilter">Payment</label>
+          <select id="paymentFilter">
+            <option value="all">All</option>
+            <option value="UNPAID">Unpaid</option>
+            <option value="AWAITING_VERIFICATION">Awaiting Verification</option>
+            <option value="PAID">Paid</option>
+            <option value="REFUNDED">Refunded</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="testFilter">Order Type</label>
+          <select id="testFilter">
+            <option value="all">All</option>
+            <option value="live">Live</option>
+            <option value="test">Test</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="deliveryAreaFilter">Delivery Area</label>
+          <select id="deliveryAreaFilter">
+            <option value="all">All</option>
+            <option value="rosewood">Rosewood</option>
+            <option value="acacia">Acacia Estates</option>
+            <option value="external">Outside Acacia Estates</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="ordersState" class="state-message">Loading orders…</p>
+      <div id="ordersList" class="order-list"></div>
+      <button type="button" id="loadMoreBtn" class="btn-quiet" hidden>Load More</button>
+    </main>
+  </div>
+</div>
+
+<div id="exportModal" class="modal-overlay" hidden>
+  <div class="modal-box export-box">
+    <h2>Export Orders</h2>
+
+    <div class="export-filters">
+      <div class="filter-group">
+        <label for="exportDatePreset">Date Range</label>
+        <select id="exportDatePreset">
+          <option value="today">Today</option>
+          <option value="last7">Last 7 Days</option>
+          <option value="this-month" selected>This Month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+
+      <div class="export-custom-dates" id="exportCustomDates" hidden>
+        <div class="field">
+          <label for="exportDateFrom">From</label>
+          <input type="date" id="exportDateFrom">
+        </div>
+        <div class="field">
+          <label for="exportDateTo">To</label>
+          <input type="date" id="exportDateTo">
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label for="exportOrderType">Order Type</label>
+        <select id="exportOrderType">
+          <option value="live" selected>Live only</option>
+          <option value="test">Test only</option>
+          <option value="all">All (Live + Test)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="exportOrderStatus">Order Status</label>
+        <select id="exportOrderStatus">
+          <option value="all">All</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="PREPARING">Preparing</option>
+          <option value="READY_FOR_PICKUP">Ready for Pickup</option>
+          <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="exportPaymentStatus">Payment Status</label>
+        <select id="exportPaymentStatus">
+          <option value="all">All</option>
+          <option value="UNPAID">Unpaid</option>
+          <option value="AWAITING_VERIFICATION">Awaiting Verification</option>
+          <option value="PAID">Paid</option>
+          <option value="REFUNDED">Refunded</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="exportFulfillment">Fulfillment</label>
+        <select id="exportFulfillment">
+          <option value="all">All</option>
+          <option value="pickup">Pickup</option>
+          <option value="delivery">Delivery</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="exportPaymentMethod">Payment Method</label>
+        <select id="exportPaymentMethod">
+          <option value="all">All</option>
+          <option value="gcash">GCash</option>
+          <option value="bank-transfer">Bank Transfer</option>
+          <option value="cash-on-pickup">Cash on Pickup</option>
+          <option value="cash-on-delivery">Cash on Delivery</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="exportDeliveryArea">Delivery Area</label>
+        <select id="exportDeliveryArea">
+          <option value="all">All</option>
+          <option value="rosewood">Rosewood</option>
+          <option value="acacia">Acacia Estates</option>
+          <option value="external">Outside Acacia Estates</option>
+        </select>
+      </div>
+    </div>
+
+    <p id="exportStatus" class="save-status" hidden></p>
+
+    <div class="modal-actions">
+      <button type="button" id="exportCancelBtn" class="btn-quiet">Cancel</button>
+      <button type="button" id="downloadCsvBtn" class="btn-quiet">Download CSV</button>
+      <button type="button" id="downloadExcelBtn" class="btn-primary-sm">Download Excel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="admin.js"></script>
+<script type="module" src="orders.js"></script>
+</body>
+</html>

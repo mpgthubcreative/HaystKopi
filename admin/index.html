@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Hayst Kopi Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body data-page="dashboard">
+
+<div id="authChecking" class="auth-checking">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>Checking your session…</span>
+</div>
+
+<div id="appShell" class="admin-shell" hidden>
+
+  <header class="admin-topbar">
+    <a href="index.html" class="admin-brand">
+      <img src="../assets/logo.png" alt="">
+      <span>Hayst Kopi Admin</span>
+    </a>
+
+    <div class="account-area">
+      <div class="account-info">
+        <div id="accountName" class="account-name"></div>
+        <span id="roleBadge" class="role-badge"></span>
+      </div>
+      <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="admin-body-row">
+    <nav class="admin-nav" aria-label="Admin navigation">
+      <a href="index.html" data-nav="dashboard">Dashboard</a>
+      <a href="orders.html" data-nav="orders">Orders</a>
+      <a href="products.html" data-nav="products">Products</a>
+      <a href="inventory.html" data-nav="inventory">Inventory</a>
+      <a href="wholesale.html" data-nav="wholesale">Wholesale</a>
+      <a href="team.html" data-nav="team">Team</a>
+      <a href="settings.html" data-nav="settings">Settings</a>
+    </nav>
+
+    <main class="admin-main">
+      <p id="accessNotice" class="notice-banner" role="alert" hidden></p>
+      <h1>Dashboard</h1>
+      <p class="lead">Sales and order analytics from real, stored order data.</p>
+
+      <div class="dashboard-filters">
+        <div class="filter-group">
+          <label for="analyticsDatePreset">Date Range</label>
+          <select id="analyticsDatePreset">
+            <option value="today">Today</option>
+            <option value="last7">Last 7 Days</option>
+            <option value="this-month" selected>This Month</option>
+            <option value="last30">Last 30 Days</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="export-custom-dates" id="analyticsCustomDates" hidden>
+          <div class="field">
+            <label for="analyticsDateFrom">From</label>
+            <input type="date" id="analyticsDateFrom">
+          </div>
+          <div class="field">
+            <label for="analyticsDateTo">To</label>
+            <input type="date" id="analyticsDateTo">
+          </div>
+        </div>
+
+        <label class="include-test-toggle">
+          <input type="checkbox" id="includeTestToggle">
+          Include Test Orders
+        </label>
+      </div>
+
+      <p id="analyticsState" class="state-message">Loading analytics…</p>
+
+      <div id="dashboardContent" hidden>
+
+        <section class="dashboard-section">
+          <h2>Today</h2>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span class="metric-label">Today's Paid Sales</span>
+              <span class="metric-value" id="todayPaidSales">₱0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Today's Orders</span>
+              <span class="metric-value" id="todayOrders">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Bottles Sold Today</span>
+              <span class="metric-value" id="todayBottlesSold">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Cancelled Today</span>
+              <span class="metric-value" id="todayCancelled">0</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="dashboard-section">
+          <h2>Selected Period</h2>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span class="metric-label">Gross Order Value</span>
+              <span class="metric-value" id="periodGrossOrderValue">₱0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Paid Revenue</span>
+              <span class="metric-value" id="periodPaidRevenue">₱0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Completed Revenue</span>
+              <span class="metric-value" id="periodCompletedRevenue">₱0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Average Order Value</span>
+              <span class="metric-value" id="periodAOV">₱0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Delivery Fees Collected</span>
+              <span class="metric-value" id="periodDeliveryFees">₱0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Refunded</span>
+              <span class="metric-value" id="periodRefundedAmount">₱0</span>
+              <span class="metric-sub" id="periodRefundedOrders">0 orders</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Pending Orders</span>
+              <span class="metric-value" id="periodPendingOrders">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Awaiting Verification</span>
+              <span class="metric-value" id="periodAwaitingVerification">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Cancelled Orders</span>
+              <span class="metric-value" id="periodCancelledOrders">0</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="dashboard-section">
+          <h2>Sales Overview</h2>
+          <div class="chart-card">
+            <canvas id="salesChart" height="90"></canvas>
+            <p id="chartEmptyState" class="state-message" hidden>No orders in this period yet.</p>
+          </div>
+        </section>
+
+        <div class="dashboard-columns">
+          <section class="dashboard-section">
+            <h2>Best Sellers</h2>
+            <ol class="best-sellers-list" id="bestSellersList"></ol>
+          </section>
+
+          <section class="dashboard-section">
+            <h2>Payment Methods</h2>
+            <div class="breakdown-list" id="paymentMethodBreakdown"></div>
+          </section>
+
+          <section class="dashboard-section">
+            <h2>Payment Status</h2>
+            <div class="breakdown-list" id="paymentStatusBreakdown"></div>
+          </section>
+
+          <section class="dashboard-section">
+            <h2>Pickup vs Delivery</h2>
+            <div class="breakdown-list" id="fulfillmentBreakdown"></div>
+          </section>
+
+          <section class="dashboard-section">
+            <h2>Delivery Areas</h2>
+            <div class="breakdown-list" id="deliveryAreaBreakdown"></div>
+            <div class="distance-insight">
+              <span>Avg. Distance: <strong id="deliveryDistanceAvg">—</strong></span>
+              <span>Longest: <strong id="deliveryDistanceLongest">—</strong></span>
+            </div>
+          </section>
+
+          <section class="dashboard-section">
+            <h2>Alerts</h2>
+            <div class="alert-list" id="alertsList"></div>
+          </section>
+        </div>
+
+        <section class="dashboard-section">
+          <h2>Recent Orders</h2>
+          <div id="recentOrdersList" class="order-list"></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module" src="admin.js"></script>
+<script type="module" src="dashboard.js"></script>
+</body>
+</html>

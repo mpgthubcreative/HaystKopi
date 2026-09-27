@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function isActiveAdmin() {
+      return isSignedIn()
+        && userDoc().data.status == 'active'
+        && (userDoc().data.role == 'owner' || userDoc().data.role == 'admin');
+    }
+
+    function isOwner() {
+      return isSignedIn()
+        && userDoc().data.status == 'active'
+        && userDoc().data.role == 'owner';
+    }
+
+    // Product catalog + gallery images — public storefront read, admin write.
+    // Capped at 5MB and restricted to actual image files, since this is now
+    // a real upload path (Products admin page) rather than a placeholder.
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isActiveAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Customer payment proof screenshots.
+    // Fully closed to every client, including an active owner/admin. The
+    // customer never has a Firebase Auth session to check against (proof
+    // upload is authorized by an order-specific token instead — see
+    // netlify/functions/lib/payment-upload-token.js), and there's no
+    // legitimate reason for ANY client SDK read/write here:
+    //   - upload/replace: netlify/functions/upload-payment-proof.js (Admin SDK)
+    //   - admin view: netlify/functions/get-payment-proof.js issues a
+    //     short-lived (15 min) signed URL after verifying an active
+    //     owner/admin ID token — never a permanently-open public URL.
+    match /paymentProofs/{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // GCash QR, logos, and other general business images — public read,
+    // OWNER-only write (tightened from admin-write in Phase 9: this path
+    // now actually holds real business payment content — the GCash QR
+    // code — and Settings is owner-only everywhere else, so the one place
+    // that manages this image should be too).
+    match /business/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Default deny everything else.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

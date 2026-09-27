@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Hayst Kopi Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body data-page="settings" data-required-role="owner">
+
+<div id="authChecking" class="auth-checking">
+  <span class="spinner" aria-hidden="true"></span>
+  <span>Checking your session…</span>
+</div>
+
+<div id="appShell" class="admin-shell" hidden>
+
+  <header class="admin-topbar">
+    <a href="index.html" class="admin-brand">
+      <img src="../assets/logo.png" alt="">
+      <span>Hayst Kopi Admin</span>
+    </a>
+
+    <div class="account-area">
+      <div class="account-info">
+        <div id="accountName" class="account-name"></div>
+        <span id="roleBadge" class="role-badge"></span>
+      </div>
+      <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="admin-body-row">
+    <nav class="admin-nav" aria-label="Admin navigation">
+      <a href="index.html" data-nav="dashboard">Dashboard</a>
+      <a href="orders.html" data-nav="orders">Orders</a>
+      <a href="products.html" data-nav="products">Products</a>
+      <a href="inventory.html" data-nav="inventory">Inventory</a>
+      <a href="wholesale.html" data-nav="wholesale">Wholesale</a>
+      <a href="team.html" data-nav="team">Team</a>
+      <a href="settings.html" data-nav="settings">Settings</a>
+    </nav>
+
+    <main class="admin-main">
+      <h1>Settings</h1>
+      <p class="lead">Business configuration. Changes take effect on the next customer checkout — no code changes needed.</p>
+      <p id="settingsState" class="state-message">Loading settings…</p>
+
+      <div id="settingsContent" hidden>
+
+        <!-- ===== GENERAL ===== -->
+        <section class="detail-section">
+          <h2>General</h2>
+          <div class="field-row">
+            <div class="field">
+              <label for="businessName">Business Name</label>
+              <input type="text" id="businessName">
+            </div>
+            <div class="field">
+              <label for="bizPhone">Contact Number</label>
+              <input type="text" id="bizPhone">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="bizEmail">Business Email</label>
+              <input type="email" id="bizEmail">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="bizFacebook">Facebook</label>
+              <input type="text" id="bizFacebook" placeholder="https://facebook.com/...">
+            </div>
+            <div class="field">
+              <label for="bizInstagram">Instagram</label>
+              <input type="text" id="bizInstagram" placeholder="https://instagram.com/...">
+            </div>
+          </div>
+          <button type="button" id="saveGeneralBtn" class="btn-primary-sm">Save Changes</button>
+          <span id="saveGeneralMsg" class="save-status"></span>
+        </section>
+
+        <!-- ===== ORDERS (accepting orders + pickup) ===== -->
+        <section class="detail-section">
+          <h2>Orders</h2>
+
+          <label class="settings-toggle">
+            <input type="checkbox" id="acceptingOrders">
+            <span><strong>Accepting Orders</strong> — turn off to close the storefront to new orders</span>
+          </label>
+
+          <p class="panel-label" style="margin-top:20px;">Pickup</p>
+          <label class="settings-toggle">
+            <input type="checkbox" id="pickupEnabled">
+            <span>Pickup enabled</span>
+          </label>
+          <div class="field">
+            <label for="pickupAddress">Pickup Address</label>
+            <input type="text" id="pickupAddress">
+            <p class="field-error" data-error-for="pickupAddress" hidden></p>
+          </div>
+          <div class="field">
+            <label for="pickupHours">Pickup Hours</label>
+            <input type="text" id="pickupHours" placeholder="e.g. Mon–Sat, 9AM–6PM">
+          </div>
+          <div class="field">
+            <label for="pickupInstructions">Pickup Instructions <span class="optional-tag">(optional)</span></label>
+            <textarea id="pickupInstructions"></textarea>
+          </div>
+
+          <button type="button" id="saveOrdersBtn" class="btn-primary-sm">Save Changes</button>
+          <span id="saveOrdersMsg" class="save-status"></span>
+        </section>
+
+        <!-- ===== DELIVERY ===== -->
+        <section class="detail-section">
+          <h2>Delivery</h2>
+
+          <label class="settings-toggle">
+            <input type="checkbox" id="deliveryEnabled">
+            <span>Delivery enabled</span>
+          </label>
+
+          <p class="panel-label" style="margin-top:20px;">Origin</p>
+          <div class="field">
+            <label for="originAddress">Origin Address</label>
+            <input type="text" id="originAddress">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="originLat">Latitude <span class="optional-tag">(optional)</span></label>
+              <input type="text" id="originLat" placeholder="14.5995">
+            </div>
+            <div class="field">
+              <label for="originLng">Longitude <span class="optional-tag">(optional)</span></label>
+              <input type="text" id="originLng" placeholder="120.9842">
+            </div>
+          </div>
+          <p class="field-error" data-error-for="origin" hidden></p>
+
+          <p class="panel-label" style="margin-top:20px;">Special Zones</p>
+          <div class="field-row">
+            <div class="field">
+              <label class="settings-toggle"><input type="checkbox" id="rosewoodEnabled"><span>Rosewood enabled</span></label>
+              <label for="rosewoodFee">Rosewood Fee (₱)</label>
+              <input type="number" id="rosewoodFee" min="0" step="1">
+            </div>
+            <div class="field">
+              <label class="settings-toggle"><input type="checkbox" id="acaciaEnabled"><span>Acacia Estates enabled</span></label>
+              <label for="acaciaFee">Acacia Estates Fee (₱)</label>
+              <input type="number" id="acaciaFee" min="0" step="1">
+            </div>
+          </div>
+
+          <p class="panel-label" style="margin-top:20px;">Distance Pricing (Outside Acacia Estates)</p>
+          <label class="settings-toggle">
+            <input type="checkbox" id="distancePricingEnabled">
+            <span>Distance pricing enabled</span>
+          </label>
+          <div class="field" style="max-width:200px;">
+            <label for="maxDistanceKm">Maximum Distance (km)</label>
+            <input type="number" id="maxDistanceKm" min="0.1" step="0.1">
+          </div>
+
+          <p class="panel-note">First bracket covers 0 to its max distance. Every bracket after that covers "over" its min distance up to its max — so brackets never overlap.</p>
+          <div id="bracketList" class="bracket-list"></div>
+          <button type="button" id="addBracketBtn" class="btn-quiet">+ Add Bracket</button>
+          <p id="bracketError" class="field-error" hidden></p>
+
+          <div style="margin-top:16px;">
+            <button type="button" id="saveDeliveryBtn" class="btn-primary-sm">Save Changes</button>
+            <span id="saveDeliveryMsg" class="save-status"></span>
+          </div>
+        </section>
+
+        <!-- ===== PAYMENTS ===== -->
+        <section class="detail-section">
+          <h2>Payments</h2>
+
+          <p class="panel-label">GCash</p>
+          <label class="settings-toggle"><input type="checkbox" id="gcashEnabled"><span>GCash enabled</span></label>
+          <div class="field-row">
+            <div class="field">
+              <label for="gcashAccountName">Account Name</label>
+              <input type="text" id="gcashAccountName">
+            </div>
+            <div class="field">
+              <label for="gcashNumber">GCash Number</label>
+              <input type="text" id="gcashNumber">
+            </div>
+          </div>
+          <div class="field">
+            <label>GCash QR Code</label>
+            <div id="gcashQrPreviewWrap" hidden><img id="gcashQrPreview" class="proof-preview-img" src="" alt="Current GCash QR"></div>
+            <input type="file" id="gcashQrFile" accept="image/jpeg,image/png,image/webp">
+            <span id="qrUploadMsg" class="save-status"></span>
+          </div>
+          <p class="field-error" data-error-for="gcash" hidden></p>
+
+          <p class="panel-label" style="margin-top:20px;">Bank Transfer</p>
+          <label class="settings-toggle"><input type="checkbox" id="bankEnabled"><span>Bank Transfer enabled</span></label>
+          <div class="field-row">
+            <div class="field">
+              <label for="bankName">Bank Name</label>
+              <input type="text" id="bankName">
+            </div>
+            <div class="field">
+              <label for="bankAccountName">Account Name</label>
+              <input type="text" id="bankAccountName">
+            </div>
+            <div class="field">
+              <label for="bankAccountNumber">Account Number</label>
+              <input type="text" id="bankAccountNumber">
+            </div>
+          </div>
+          <p class="field-error" data-error-for="bankTransfer" hidden></p>
+
+          <p class="panel-label" style="margin-top:20px;">Cash Payments</p>
+          <label class="settings-toggle"><input type="checkbox" id="codPickupEnabled"><span>Cash on Pickup enabled</span></label>
+          <label class="settings-toggle"><input type="checkbox" id="codDeliveryEnabled"><span>Cash on Delivery enabled</span></label>
+
+          <div style="margin-top:16px;">
+            <button type="button" id="savePaymentsBtn" class="btn-primary-sm">Save Changes</button>
+            <span id="savePaymentsMsg" class="save-status"></span>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module" src="admin.js"></script>
+<script type="module" src="settings.js"></script>
+</body>
+</html>
