@@ -1,6 +1,3 @@
-# Firebase local config (contains real project keys once filled in)
-firebase/firebase-config.js
-
 # Firebase CLI
 .firebase/
 firebase-debug.log
