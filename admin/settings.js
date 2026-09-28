@@ -376,6 +376,11 @@ document.getElementById("gcashQrFile").addEventListener("change", async () => {
     document.getElementById("gcashQrPreview").src = url;
     showSaveStatus(msgEl, "Uploaded — click Save Changes to apply.", "is-success");
   } catch (err) {
+    // Logged deliberately — this previously failed silently, making a real
+    // Storage rules/config issue indistinguishable from a legitimate
+    // rejection (bad file type/size). err.code (e.g. "storage/unauthorized")
+    // is the key thing to read from the browser console when diagnosing.
+    console.error("GCash QR upload failed:", err.code || err.message || err);
     showSaveStatus(msgEl, "Couldn't upload that image. Please try again.", "is-error");
   }
 
