@@ -217,6 +217,12 @@
               <input type="text" id="bankAccountNumber">
             </div>
           </div>
+          <div class="field">
+            <label>Bank Transfer QR Code</label>
+            <div id="bankQrPreviewWrap" hidden><img id="bankQrPreview" class="proof-preview-img" src="" alt="Current Bank Transfer QR"></div>
+            <input type="file" id="bankQrFile" accept="image/jpeg,image/png,image/webp">
+            <span id="bankQrUploadMsg" class="save-status"></span>
+          </div>
           <p class="field-error" data-error-for="bankTransfer" hidden></p>
 
           <p class="panel-label" style="margin-top:20px;">Cash Payments</p>

@@ -34,6 +34,7 @@ function buildPaymentInstructions(settings, paymentMethod) {
       bankName: settings.bankTransfer.bankName || "",
       accountName: settings.bankTransfer.accountName || "",
       accountNumber: settings.bankTransfer.accountNumber || "",
+      qrImagePath: settings.bankTransfer.qrImagePath || "",
     };
   }
 

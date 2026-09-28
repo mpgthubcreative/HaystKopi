@@ -56,6 +56,11 @@ export function initPaymentProofUI({ orderId, uploadToken, total, paymentMethod,
     document.getElementById("payBankName").textContent = paymentInstructions.bankName || "—";
     document.getElementById("payBankAccountName").textContent = paymentInstructions.accountName || "—";
     document.getElementById("payBankAccountNumber").textContent = paymentInstructions.accountNumber || "—";
+    if (paymentInstructions.qrImagePath) {
+      const qr = document.getElementById("payBankQr");
+      qr.src = paymentInstructions.qrImagePath;
+      qr.hidden = false;
+    }
   }
 
   const uploadStep = document.getElementById("payUploadStep");

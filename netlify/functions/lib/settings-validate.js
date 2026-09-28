@@ -166,6 +166,7 @@ function validatePaymentsPayload(payload) {
       bankName,
       accountName: bankAccountName,
       accountNumber: bankAccountNumber,
+      qrImagePath: str(bankRaw.qrImagePath, 500),
     },
     cashOnPickup: { enabled: bool(codPickupRaw.enabled) },
     cashOnDelivery: { enabled: bool(codDeliveryRaw.enabled) },

@@ -95,6 +95,7 @@ exports.handler = async (event) => {
           bankName: (paymentSettings && paymentSettings.bankTransfer && paymentSettings.bankTransfer.bankName) || "",
           accountName: (paymentSettings && paymentSettings.bankTransfer && paymentSettings.bankTransfer.accountName) || "",
           accountNumber: (paymentSettings && paymentSettings.bankTransfer && paymentSettings.bankTransfer.accountNumber) || "",
+          qrImagePath: (paymentSettings && paymentSettings.bankTransfer && paymentSettings.bankTransfer.qrImagePath) || "",
         },
         cashOnPickup: { enabled: Boolean(paymentSettings && paymentSettings.cashOnPickup && paymentSettings.cashOnPickup.enabled) },
         cashOnDelivery: { enabled: Boolean(paymentSettings && paymentSettings.cashOnDelivery && paymentSettings.cashOnDelivery.enabled) },

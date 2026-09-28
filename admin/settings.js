@@ -14,6 +14,7 @@ const contentEl = document.getElementById("settingsContent");
 
 let brackets = [];
 let pendingQrUrl = null;
+let pendingBankQrUrl = null;
 
 document.addEventListener("admin:ready", async () => {
   await loadSettings();
@@ -108,6 +109,11 @@ function populatePayments(payments) {
   document.getElementById("bankName").value = bank.bankName || "";
   document.getElementById("bankAccountName").value = bank.accountName || "";
   document.getElementById("bankAccountNumber").value = bank.accountNumber || "";
+  pendingBankQrUrl = bank.qrImagePath || null;
+  if (pendingBankQrUrl) {
+    document.getElementById("bankQrPreviewWrap").hidden = false;
+    document.getElementById("bankQrPreview").src = pendingBankQrUrl;
+  }
 
   document.getElementById("codPickupEnabled").checked = codP.enabled === true;
   document.getElementById("codDeliveryEnabled").checked = codD.enabled === true;
@@ -388,6 +394,32 @@ document.getElementById("gcashQrFile").addEventListener("change", async () => {
   fileInput.value = "";
 });
 
+document.getElementById("bankQrFile").addEventListener("change", async () => {
+  const fileInput = document.getElementById("bankQrFile");
+  const msgEl = document.getElementById("bankQrUploadMsg");
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  showSaveStatus(msgEl, "Uploading…", null);
+  fileInput.disabled = true;
+
+  try {
+    // Fixed path — a repeat upload overwrites, so replacing the QR never
+    // leaves an orphaned old image in Storage.
+    const url = await uploadBusinessImage("bank-qr", file);
+    pendingBankQrUrl = url;
+    document.getElementById("bankQrPreviewWrap").hidden = false;
+    document.getElementById("bankQrPreview").src = url;
+    showSaveStatus(msgEl, "Uploaded — click Save Changes to apply.", "is-success");
+  } catch (err) {
+    console.error("Bank Transfer QR upload failed:", err.code || err.message || err);
+    showSaveStatus(msgEl, "Couldn't upload that image. Please try again.", "is-error");
+  }
+
+  fileInput.disabled = false;
+  fileInput.value = "";
+});
+
 document.getElementById("savePaymentsBtn").addEventListener("click", async () => {
   const btn = document.getElementById("savePaymentsBtn");
   const msgEl = document.getElementById("savePaymentsMsg");
@@ -409,6 +441,7 @@ document.getElementById("savePaymentsBtn").addEventListener("click", async () =>
       bankName: document.getElementById("bankName").value.trim(),
       accountName: document.getElementById("bankAccountName").value.trim(),
       accountNumber: document.getElementById("bankAccountNumber").value.trim(),
+      qrImagePath: pendingBankQrUrl || "",
     },
     cashOnPickup: { enabled: document.getElementById("codPickupEnabled").checked },
     cashOnDelivery: { enabled: document.getElementById("codDeliveryEnabled").checked },
