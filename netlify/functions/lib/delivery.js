@@ -172,7 +172,12 @@ async function calculateDrivingDistanceKm({ origin, destinationAddress, apiKey }
   }
 
   if (data.status !== "OK") {
-    return { ok: false, reason: "provider-error" };
+    // Logged deliberately — this previously discarded Google's own status/
+    // error_message (e.g. "REQUEST_DENIED" + "This API project is not
+    // authorized to use this API"), collapsing every distinct failure into
+    // one generic "provider-error" reason that was impossible to diagnose
+    // from the logs alone.
+    return { ok: false, reason: "provider-error", providerStatus: data.status, providerMessage: data.error_message };
   }
 
   const element = data.rows?.[0]?.elements?.[0];
@@ -251,7 +256,12 @@ async function resolveDelivery({ db, apiKey, deliveryArea, deliveryAddress }) {
   });
 
   if (!distanceResult.ok) {
-    console.error("Distance calculation failed:", distanceResult.reason);
+    console.error(
+      "Distance calculation failed:",
+      distanceResult.reason,
+      distanceResult.providerStatus || "",
+      distanceResult.providerMessage || ""
+    );
     return {
       httpStatus: 503,
       body: { available: false, error: "distance-unavailable", message: "We couldn't calculate delivery right now. Please try again." },
