@@ -220,6 +220,30 @@
   </div>
 </div>
 
+<div id="confirmModal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h2 id="confirmModalTitle"></h2>
+    <p id="confirmModalBody"></p>
+    <div class="modal-actions">
+      <button type="button" id="confirmModalCancelBtn" class="btn-quiet"></button>
+      <button type="button" id="confirmModalConfirmBtn" class="btn-danger"></button>
+    </div>
+  </div>
+</div>
+
+<div id="proofModal" class="modal-overlay" hidden>
+  <div class="modal-box proof-modal-box">
+    <h2 id="proofModalTitle">Payment Proof</h2>
+    <p id="proofModalMsg" class="save-status"></p>
+    <div id="proofModalImageWrap" class="proof-modal-image-wrap" hidden>
+      <img id="proofModalImage" src="" alt="Payment proof screenshot">
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="proofModalCloseBtn" class="btn-quiet">Close</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="admin.js"></script>
 <script type="module" src="orders.js"></script>
 </body>

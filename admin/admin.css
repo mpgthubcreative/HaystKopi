@@ -744,6 +744,144 @@ input:focus-visible {
 
 .order-card-actions {
   margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- Order card quick actions (fast workflow on the list page) ---------- */
+
+.quick-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(59, 36, 22, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-label {
+  flex: none;
+  width: 60px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.quick-select {
+  flex: 1 1 160px;
+  min-width: 140px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(59, 36, 22, 0.25);
+  background: var(--white);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--espresso);
+}
+
+.quick-shortcut-btn {
+  flex: none;
+}
+
+.quick-action-msg {
+  margin: 0;
+}
+
+.btn-success {
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 0;
+  background: var(--matcha);
+  color: var(--espresso);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-success:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn-success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Awaiting-verification payment review (order card) ---------- */
+
+.payment-review-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--latte);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.payment-review-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.reference-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.reference-value {
+  font-family: monospace;
+  font-weight: 600;
+  background: var(--white);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.copy-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(59, 36, 22, 0.3);
+  background: var(--white);
+  color: var(--espresso);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.copy-btn:hover {
+  background: rgba(59, 36, 22, 0.06);
+}
+
+.payment-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.payment-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* ---------- Badges / pills (shared: list + detail page) ---------- */
@@ -823,6 +961,20 @@ input:focus-visible {
 }
 
 .proof-preview img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 36, 22, 0.14);
+}
+
+.proof-modal-box {
+  max-width: 480px;
+}
+
+.proof-modal-image-wrap {
+  margin-top: 12px;
+}
+
+.proof-modal-image-wrap img {
   width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(59, 36, 22, 0.14);

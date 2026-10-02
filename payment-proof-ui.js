@@ -184,7 +184,7 @@ export function initPaymentProofUI({ orderId, uploadToken, total, paymentMethod,
     }
 
     freshConfirmBtn.disabled = true;
-    setState(confirmStateEl, "Confirming…", "is-loading");
+    setState(confirmStateEl, "Submitting…", "is-loading");
 
     let response;
     let result;

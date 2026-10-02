@@ -66,19 +66,19 @@
       </div>
 
       <div id="payReferenceStep" class="payment-step" hidden>
-        <p class="panel-label">Reference Number Detected</p>
+        <p class="panel-label">Verify Reference Number</p>
+        <p class="panel-note">We detected this reference number from your payment screenshot. Please check and correct it if needed.</p>
         <div class="field">
           <label for="payReferenceInput">Reference / Transaction Number</label>
           <input type="text" id="payReferenceInput" autocomplete="off">
         </div>
-        <p class="panel-note">Please check that this matches your payment receipt.</p>
-        <button type="button" id="payConfirmBtn" class="cta-btn">Confirm Payment Details</button>
+        <button type="button" id="payConfirmBtn" class="cta-btn">Submit Payment Proof</button>
         <button type="button" id="payReplaceBtn" class="btn-quiet">Replace Screenshot</button>
         <p id="payConfirmState" class="delivery-calc-state" hidden></p>
       </div>
 
       <div id="payDoneStep" class="payment-step" hidden>
-        <p class="place-order-message">Thanks! We'll verify your payment and update your order status.</p>
+        <p class="place-order-message">Payment proof submitted. We're verifying your payment.</p>
         <button type="button" id="payReplaceAgainBtn" class="btn-quiet">Replace Payment Proof</button>
       </div>
     </section>
