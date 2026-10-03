@@ -245,7 +245,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   hideProductNotice();
-  flavorButtons.forEach((btn) => { btn.disabled = false; });
+  flavorButtons.forEach((btn) => {
+    btn.disabled = false;
+    // The small flavor swatch thumbnail was previously hardcoded in the
+    // static HTML (assets/product-2.jpg, assets/product-3.jpg) and never
+    // updated from Firestore — editing a product's cover photo in the
+    // admin dashboard had no effect on it. Set it from the real product
+    // data instead, same source as the main cover photo.
+    const slug = btn.getAttribute('data-flavor');
+    const swatchImg = btn.querySelector('.flavor-swatch img');
+    const swatchProduct = PRODUCTS[slug];
+    if (swatchImg && swatchProduct && swatchProduct.image) {
+      swatchImg.src = swatchProduct.image;
+    }
+  });
 
   // Render the real product (price, volume, photos) as soon as it's
   // available, rather than waiting on the settings fetch below too — that
