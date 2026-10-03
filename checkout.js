@@ -321,7 +321,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     selectedExternalPlace = null;
     externalSelectedPlaceBox.hidden = true;
     externalSelectedPlaceText.textContent = "";
-    if (deliveryCalculation) clearDeliveryCalculation();
+    // Unconditional — a FAILED calculation already leaves deliveryCalculation
+    // null while deliveryCalcState is still visibly showing the old error
+    // banner (see calculateDelivery()'s !result.available branch). Gating
+    // this on `deliveryCalculation` truthiness left that stale banner on
+    // screen after editing/reselecting the address, misleadingly implying
+    // a brand-new address was also out of range before it had ever been
+    // calculated. Found via live production testing (2026-10-03).
+    clearDeliveryCalculation();
     if (message) setFieldError("deliveryAddress", message);
   }
 
