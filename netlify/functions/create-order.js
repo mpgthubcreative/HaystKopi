@@ -20,7 +20,7 @@ const { validateOrderInput } = require("./lib/validate-order");
 const { resolveDelivery } = require("./lib/delivery");
 const { respond, RequestError } = require("./lib/http");
 const { commitOrderInTransaction } = require("./lib/order-transaction");
-const { sendNewOrderEmail } = require("./lib/order-notifications");
+const { sendNewOrderEmail, sendCustomerOrderConfirmationEmail } = require("./lib/order-notifications");
 const { generateUploadToken, hashUploadToken, tokenExpiryTimestamp, CHECKOUT_TOKEN_TTL_MS } = require("./lib/payment-upload-token");
 const { normalizePhone } = require("./lib/phone");
 const { getPaymentSettings, buildPaymentInstructions, isPaymentMethodEnabled } = require("./lib/payment-settings");
@@ -249,25 +249,43 @@ exports.handler = async (event) => {
     const { isNewOrder, ...publicResult } = result;
 
     if (isNewOrder) {
+      // Shared fields for both the Owner and customer emails — deliberately
+      // built once rather than duplicated, but note the two calls below
+      // still pass distinct field sets: sendNewOrderEmail never receives
+      // data.email (the Owner email has no use for it and shouldn't carry
+      // it — see lib/order-notifications.js), and only
+      // sendCustomerOrderConfirmationEmail receives customerEmail/the
+      // recipient address itself.
+      const notificationFields = {
+        orderNumber: result.orderNumber,
+        customerName: data.fullName,
+        productName: result.productName,
+        quantity: result.quantity,
+        fulfillmentMethod: data.fulfillment,
+        deliveryArea: data.fulfillment === "delivery" ? data.deliveryArea : null,
+        deliveryAddress: data.fulfillment === "delivery" ? data.deliveryAddress : null,
+        paymentMethod: data.paymentMethod,
+        paymentStatus: "UNPAID",
+        total: result.total,
+        orderSource: "website",
+        isTest: false,
+      };
+
+      // Each send is independently caught so a failure in one (Owner or
+      // customer) never blocks the other, and neither ever fails order
+      // creation itself — see lib/order-notifications.js's header.
       try {
-        await sendNewOrderEmail({
-          orderId: result.orderId,
-          orderNumber: result.orderNumber,
-          customerName: data.fullName,
-          phone: data.mobile,
-          productName: result.productName,
-          quantity: result.quantity,
-          fulfillmentMethod: data.fulfillment,
-          deliveryArea: data.fulfillment === "delivery" ? data.deliveryArea : null,
-          deliveryAddress: data.fulfillment === "delivery" ? data.deliveryAddress : null,
-          paymentMethod: data.paymentMethod,
-          paymentStatus: "UNPAID",
-          total: result.total,
-          orderSource: "website",
-          isTest: false,
-        });
+        await sendNewOrderEmail({ ...notificationFields, orderId: result.orderId, phone: data.mobile });
       } catch (err) {
         console.error("create-order: new-order notification threw unexpectedly (order was still created):", err);
+      }
+
+      if (data.email) {
+        try {
+          await sendCustomerOrderConfirmationEmail({ ...notificationFields, customerEmail: data.email });
+        } catch (err) {
+          console.error("create-order: customer confirmation notification threw unexpectedly (order was still created):", err);
+        }
       }
     }
 

@@ -25,6 +25,18 @@ const { ORDER_SOURCE_LABELS } = require("./order-source");
 
 const RESEND_URL = "https://api.resend.com/emails";
 
+// Customer-facing wording only — deliberately different from the internal
+// PAYMENT_STATUS_LABELS used in exports/admin (those say "Awaiting
+// Verification", which reads like jargon to a customer). Never implies a
+// payment is verified/confirmed unless paymentStatus is actually PAID —
+// AWAITING_VERIFICATION is explicit that verification is still pending.
+const CUSTOMER_PAYMENT_STATUS_LABELS = {
+  UNPAID: "Payment pending",
+  AWAITING_VERIFICATION: "Payment proof submitted — we're verifying your payment.",
+  PAID: "Payment confirmed",
+  REFUNDED: "Refunded",
+};
+
 function escapeHtml(value) {
   if (value === null || value === undefined) return "";
   return String(value)
@@ -53,6 +65,21 @@ function adminOrderLink(orderId) {
   return `${siteUrl()}/admin/order.html?id=${encodeURIComponent(orderId)}`;
 }
 
+// Public, customer-facing tracking page — NEVER the admin order page. The
+// existing lookup (get-order-status.js / lib/order-lookup.js) requires
+// BOTH order number AND mobile number before returning anything, because
+// order numbers are sequential/guessable and phone is the actual secret;
+// there is no token-based one-click link in this architecture, and this
+// deliberately does not invent one. order-status.js already supports an
+// `?order=` query param that only PREFILLS that field (confirmed in
+// order-status.js) — phone must still be typed in, so this link cannot
+// bypass the real lookup check. Order numbers are not secret (they're
+// shown in plain text elsewhere in this same email), so including one in
+// a URL is safe.
+function trackingLink(orderNumber) {
+  return `${siteUrl()}/order-status.html?order=${encodeURIComponent(orderNumber)}`;
+}
+
 // Escapes `value` by default — safe-by-default for every call site. The
 // one case that needs to combine two already-escaped pieces (the Product
 // line's "name × qty") builds that string itself and passes it via
@@ -67,6 +94,11 @@ function rowRaw(label, safeHtmlValue) {
   return `<tr><td style="padding:4px 12px 4px 0;color:#6B5647;font-size:13px;white-space:nowrap;">${escapeHtml(label)}</td><td style="padding:4px 0;color:#3B2416;font-size:14px;">${safeHtmlValue}</td></tr>`;
 }
 
+// Owner-only wrapper — its CTA always links to the Admin Order Details
+// page. Never reused for the customer-facing email below, which has its
+// own separate wrapper (wrapCustomerEmail) with its own CTA, so there is
+// no shared code path that could ever leak an admin link into a customer
+// inbox.
 function wrapEmail(heading, bodyRowsHtml, linkUrl) {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#F8F2EC;">
@@ -80,14 +112,40 @@ function wrapEmail(heading, bodyRowsHtml, linkUrl) {
 </div>`.trim();
 }
 
-async function sendEmail({ subject, html }) {
+// Customer-facing wrapper — simple, branded, mobile-friendly. `introText`
+// is already-escaped-safe HTML (built by the caller via escapeHtml), and
+// its CTA always points at the public tracking page via `ctaUrl` — this
+// function has no parameter that could ever carry an admin link.
+function wrapCustomerEmail(heading, introHtml, bodyRowsHtml, ctaUrl, ctaLabel) {
+  return `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#F8F2EC;">
+  <h1 style="font-size:20px;color:#3B2416;margin:0 0 4px;">Hayst Kopi</h1>
+  <h2 style="font-size:16px;color:#6B5647;margin:0 0 16px;font-weight:600;">${escapeHtml(heading)}</h2>
+  <p style="font-size:14px;color:#3B2416;line-height:20px;margin:0 0 16px;">${introHtml}</p>
+  <table role="presentation" style="width:100%;border-collapse:collapse;background:#FFFCF9;border-radius:12px;padding:16px;">
+    ${bodyRowsHtml}
+  </table>
+  <p style="margin:20px 0 0;">
+    <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:10px 18px;border-radius:999px;background:#3B2416;color:#F8F2EC;text-decoration:none;font-size:13px;font-weight:600;">${escapeHtml(ctaLabel)}</a>
+  </p>
+</div>`.trim();
+}
+
+// `to` defaults to the Owner notification address (ORDER_NOTIFICATION_EMAIL)
+// so every existing owner-email call site is unaffected by this signature
+// gaining an optional override — sendCustomerOrderConfirmationEmail is the
+// only caller that ever passes a different `to`. `text` is an optional
+// plain-text alternative part; Resend sends a proper multipart email when
+// both `html` and `text` are present, and just HTML when `text` is omitted
+// (the owner emails' existing behavior, unchanged).
+async function sendEmail({ subject, html, text, to: toOverride }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.ORDER_NOTIFICATION_EMAIL;
+  const to = toOverride || process.env.ORDER_NOTIFICATION_EMAIL;
   const from = process.env.ORDER_NOTIFICATION_FROM_EMAIL;
 
   if (!apiKey || !to || !from) {
     console.error(
-      "order-notifications: RESEND_API_KEY/ORDER_NOTIFICATION_EMAIL/ORDER_NOTIFICATION_FROM_EMAIL not fully configured — skipping email:",
+      "order-notifications: RESEND_API_KEY/ORDER_NOTIFICATION_FROM_EMAIL/recipient not fully configured — skipping email:",
       subject
     );
     return { ok: false, reason: "not-configured" };
@@ -100,7 +158,7 @@ async function sendEmail({ subject, html }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ from, to: [to], subject, html }),
+      body: JSON.stringify({ from, to: [to], subject, html, ...(text ? { text } : {}) }),
     });
 
     if (!response.ok) {
@@ -189,4 +247,88 @@ async function sendPaymentProofSubmittedEmail({ orderId, orderNumber, customerNa
   return sendEmail({ subject: `Payment Proof Submitted — ${orderNumber}`, html });
 }
 
-module.exports = { sendNewOrderEmail, sendPaymentProofSubmittedEmail, adminOrderLink, escapeHtml };
+// Called only for a FRESHLY created website order with a valid customer
+// email on file — see create-order.js, which gates this call on the exact
+// same `isNewOrder` branch as sendNewOrderEmail (the owner email), so a
+// retried/idempotent clientRequestId can never trigger a second customer
+// email either. The orderSource/isTest guard and the email-presence check
+// below are a second, independent layer of protection, matching
+// sendNewOrderEmail's pattern.
+//
+// PRIVACY: this function's parameter list is deliberately narrow — it has
+// no way to reference adminNotes, OCR fields, the payment-proof storage
+// path, duplicate/mismatch flags, or an admin link, because it is never
+// passed those values in the first place (see the call site in
+// create-order.js). wrapCustomerEmail (not wrapEmail) builds the HTML, and
+// that function has no admin-link parameter either — there is no code
+// path by which this email could ever contain one.
+async function sendCustomerOrderConfirmationEmail({
+  customerEmail,
+  orderNumber,
+  customerName,
+  productName,
+  quantity,
+  fulfillmentMethod,
+  deliveryArea,
+  deliveryAddress,
+  paymentMethod,
+  paymentStatus,
+  total,
+  orderSource,
+  isTest,
+}) {
+  if (orderSource !== "website" || isTest) {
+    return { ok: false, reason: "not-applicable" };
+  }
+  if (!customerEmail) {
+    return { ok: false, reason: "no-email" };
+  }
+
+  const greetingName = customerName ? customerName.trim() : "";
+  const introHtml = `Hi${greetingName ? ` ${escapeHtml(greetingName)}` : ""}, thanks for your order! Here's a quick summary:`;
+
+  const rows = [
+    row("Order Number", orderNumber),
+    rowRaw("Product", `${escapeHtml(productName)} &times; ${Number(quantity) || 0}`),
+    row("Fulfillment", FULFILLMENT_LABELS[fulfillmentMethod] || fulfillmentMethod || ""),
+  ];
+
+  if (fulfillmentMethod === "delivery") {
+    rows.push(row("Delivery Address", formatDeliveryAddressForExport(deliveryArea, deliveryAddress)));
+  }
+
+  rows.push(
+    row("Payment Method", PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod || ""),
+    row("Payment Status", CUSTOMER_PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus || ""),
+    row("Order Total", formatPeso(total))
+  );
+
+  const trackUrl = trackingLink(orderNumber);
+  const html = wrapCustomerEmail("Order Confirmed", introHtml, rows.join(""), trackUrl, "TRACK YOUR ORDER");
+
+  const text = [
+    `Hi${greetingName ? ` ${greetingName}` : ""}, thanks for your order!`,
+    "",
+    `Order Number: ${orderNumber}`,
+    `Product: ${productName} x ${Number(quantity) || 0}`,
+    `Fulfillment: ${FULFILLMENT_LABELS[fulfillmentMethod] || fulfillmentMethod || ""}`,
+    ...(fulfillmentMethod === "delivery" ? [`Delivery Address: ${formatDeliveryAddressForExport(deliveryArea, deliveryAddress)}`] : []),
+    `Payment Method: ${PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod || ""}`,
+    `Payment Status: ${CUSTOMER_PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus || ""}`,
+    `Order Total: ${formatPeso(total)}`,
+    "",
+    `Track your order: ${trackUrl}`,
+    "(You'll need the order number above and the mobile number you used at checkout.)",
+  ].join("\n");
+
+  return sendEmail({ subject: `Hayst Kopi Order Confirmed — ${orderNumber}`, html, text, to: customerEmail });
+}
+
+module.exports = {
+  sendNewOrderEmail,
+  sendPaymentProofSubmittedEmail,
+  sendCustomerOrderConfirmationEmail,
+  adminOrderLink,
+  trackingLink,
+  escapeHtml,
+};
