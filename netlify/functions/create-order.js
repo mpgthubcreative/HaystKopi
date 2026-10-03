@@ -19,7 +19,7 @@ const { admin, db, initError } = require("./lib/firebase-admin");
 const { validateOrderInput } = require("./lib/validate-order");
 const { resolveDelivery } = require("./lib/delivery");
 const { respond, RequestError } = require("./lib/http");
-const { formatManilaBusinessDate } = require("./lib/manila-date");
+const { commitOrderInTransaction } = require("./lib/order-transaction");
 const { generateUploadToken, hashUploadToken, tokenExpiryTimestamp, CHECKOUT_TOKEN_TTL_MS } = require("./lib/payment-upload-token");
 const { normalizePhone } = require("./lib/phone");
 const { getPaymentSettings, buildPaymentInstructions, isPaymentMethodEnabled } = require("./lib/payment-settings");
@@ -195,58 +195,19 @@ exports.handler = async (event) => {
         return safeReplayResult(orderRef, orderSnap.data());
       }
 
-      const productRef = db.collection("products").doc(data.productId);
-      const productSnap = await tx.get(productRef);
-
-      if (!productSnap.exists) {
-        throw new RequestError("product-not-found", "We couldn't find that product.", 404);
-      }
-
-      const product = productSnap.data();
-      const currentInventory = Number(product.inventory);
-
-      if (!Number.isInteger(currentInventory) || currentInventory <= 0) {
-        throw new RequestError("out-of-stock", "This product is currently unavailable.", 409);
-      }
-
-      if (currentInventory < data.quantity) {
-        throw new RequestError(
-          "insufficient-stock",
-          `Only ${currentInventory} bottle${currentInventory === 1 ? "" : "s"} still available.`,
-          409
-        );
-      }
-
-      // Business date is Asia/Manila (fixed UTC+8), never the runtime's own
-      // timezone — see lib/manila-date.js for why this is safe/deterministic.
-      const businessDate = formatManilaBusinessDate(new Date());
-      const counterRef = db.collection("counters").doc(`orders-${businessDate}`);
-      const counterSnap = await tx.get(counterRef);
-      const nextSeq = (counterSnap.exists ? Number(counterSnap.data().count) || 0 : 0) + 1;
-      const orderNumber = `HK-${businessDate}-${String(nextSeq).padStart(3, "0")}`;
-
-      // ---- Everything money-related below is server-derived. The client
-      // never sent a trusted price/subtotal/total/deliveryFee/distanceKm,
-      // and nothing here reads one even if it had — delivery was resolved
-      // independently above via the same trusted settings/delivery config
-      // create-order and calculate-delivery both use. ----
-      const unitPrice = Number(product.price) || 0;
-      const subtotal = unitPrice * data.quantity;
-      const deliveryFee = delivery.deliveryFee;
-      const total = subtotal + deliveryFee;
-      const newInventory = currentInventory - data.quantity;
-
-      tx.update(productRef, {
-        inventory: newInventory,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      tx.set(counterRef, { count: nextSeq }, { merge: true });
-
-      const nowTimestamp = admin.firestore.Timestamp.now();
-
-      tx.set(orderRef, {
-        orderNumber,
-        clientRequestId: data.clientRequestId,
+      const committed = await commitOrderInTransaction({
+        tx,
+        db,
+        admin,
+        orderRef,
+        productId: data.productId,
+        quantity: data.quantity,
+        fulfillmentMethod: data.fulfillment,
+        deliveryArea: data.fulfillment === "delivery" ? data.deliveryArea : null,
+        deliveryAddress: data.fulfillment === "delivery" ? data.deliveryAddress : null,
+        delivery,
+        paymentMethod: data.paymentMethod,
+        paymentStatus: "UNPAID",
         customerName: data.fullName,
         phone: data.mobile,
         // Consistent normal form (639171234567) so order tracking and
@@ -255,85 +216,16 @@ exports.handler = async (event) => {
         // lib/order-lookup.js falls back to normalizing `phone` for those.
         phoneNormalized: normalizePhone(data.mobile),
         email: data.email,
-        fulfillmentMethod: data.fulfillment,
-        deliveryArea: data.fulfillment === "delivery" ? data.deliveryArea : null,
-        deliveryAddress: data.fulfillment === "delivery" ? data.deliveryAddress : null,
-        // Trusted result from resolveDelivery() — a real driving distance
-        // for "external" orders, or null for pickup/special zones.
-        deliveryDistanceKm: delivery.distanceKm,
-        deliveryPricingType: delivery.pricingType, // "special-zone" | "distance" | null
-        // Snapshot of whichever rule produced deliveryFee, frozen at order
-        // time — if the Owner edits settings/delivery tomorrow, this order
-        // keeps showing the rule that actually applied when it was placed.
-        deliveryPricingSnapshot: delivery.pricingSnapshot,
-        paymentMethod: data.paymentMethod,
-        paymentStatus: "UNPAID",
-        // Frozen at order time — if the Owner edits settings/payments
-        // tomorrow (new GCash number, etc.), this order keeps showing the
-        // instructions the customer actually saw when they paid.
+        customerNotes: data.customerNotes,
+        orderSource: "website",
         paymentInstructionsSnapshot: paymentInstructions,
         paymentUploadTokenHash,
         paymentUploadTokenExpiresAt,
-        paymentProofUploadedAt: null,
-        paymentReferenceDetected: null,
-        paymentReferenceConfidence: null,
-        paymentReferenceConfirmed: false,
-        paymentReferenceSource: null,
-        ocrRawText: null,
-        ocrDetectedAmount: null,
-        paymentAmountMismatch: false,
-        duplicatePaymentReference: false,
-        orderStatus: "PENDING",
-        items: [
-          {
-            productId: data.productId,
-            name: product.name || data.productId,
-            price: unitPrice,
-            bottleSize: product.bottleSize || "",
-            quantity: data.quantity,
-            image: product.image || "",
-          },
-        ],
-        subtotal,
-        deliveryFee,
-        total,
-        customerNotes: data.customerNotes,
-        inventoryDeducted: true,
-        inventoryRestored: false,
-        isTest: false,
-        paymentProofPath: null,
-        paymentReference: null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        statusHistory: [{ status: "PENDING", at: nowTimestamp, note: "Order created" }],
-      });
-
-      const logRef = db.collection("inventoryLogs").doc();
-      tx.set(logRef, {
-        productId: data.productId,
-        productName: product.name || data.productId,
-        previousInventory: currentInventory,
-        newInventory,
-        changeAmount: -data.quantity,
-        reason: `Order ${orderNumber}`,
-        type: "order_created",
-        orderId: orderRef.id,
-        orderNumber,
-        updatedBy: "system",
-        updatedByName: "system",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        initialStatusNote: "Order created",
       });
 
       return {
-        orderId: orderRef.id,
-        orderNumber,
-        customerName: data.fullName,
-        productName: product.name || data.productId,
-        quantity: data.quantity,
-        total,
-        fulfillmentMethod: data.fulfillment,
-        paymentMethod: data.paymentMethod,
-        orderStatus: "PENDING",
+        ...committed,
         // Plaintext token, returned exactly once — only the hash is ever
         // persisted (see lib/payment-upload-token.js). A client that loses
         // this response (network drop) and retries with the same

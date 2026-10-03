@@ -261,6 +261,74 @@ textarea:focus-visible {
   border-color: var(--stock-out);
 }
 
+/* ---------- Delivery address — Google Places autocomplete ---------- */
+
+.place-field {
+  position: relative;
+}
+
+.place-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1.5px solid rgba(59, 36, 22, 0.25);
+  background: var(--white);
+  box-shadow: 0 8px 24px rgba(59, 36, 22, 0.14);
+}
+
+.place-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid rgba(59, 36, 22, 0.1);
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.place-suggestion:last-child {
+  border-bottom: 0;
+}
+
+.place-suggestion:hover,
+.place-suggestion:focus-visible {
+  background: var(--bg);
+}
+
+.place-suggestion-main {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--espresso);
+}
+
+.place-suggestion-secondary {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.selected-place-box {
+  margin: -8px 0 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--latte);
+  font-size: 13px;
+  color: var(--espresso);
+}
+
+.selected-place-label {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
 /* ---------- Option cards (fulfillment + payment) ---------- */
 
 .option-row {

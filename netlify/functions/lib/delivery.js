@@ -126,14 +126,13 @@ function findBracket(distanceKm, brackets) {
 
 // ---------- Distance calculation (Google Distance Matrix API) ----------
 
-function buildAddressString(deliveryAddress) {
-  const parts = [deliveryAddress.addressLine, deliveryAddress.barangay, deliveryAddress.city, "Philippines"]
-    .map((p) => (p || "").trim())
-    .filter(Boolean);
-  return parts.join(", ");
-}
-
-async function calculateDrivingDistanceKm({ origin, destinationAddress, apiKey }) {
+// Phase 13: external deliveries are routed by the customer's SELECTED
+// Google Place (placeId), never a re-geocoded guess at free text — two
+// different "SMDC" buildings in different cities are indistinguishable as
+// plain text, but unambiguous as a place_id. Coordinates are the fallback
+// when only lat/lng are available; a bare address string is no longer
+// accepted at all for external deliveries (see resolveDelivery() below).
+async function calculateDrivingDistanceKm({ origin, destination, apiKey }) {
   if (!apiKey) {
     return { ok: false, reason: "no-api-key" };
   }
@@ -146,9 +145,18 @@ async function calculateDrivingDistanceKm({ origin, destinationAddress, apiKey }
     return { ok: false, reason: "no-origin-configured" };
   }
 
+  let destinationParam;
+  if (destination.placeId) {
+    destinationParam = `place_id:${destination.placeId}`;
+  } else if (destination.lat != null && destination.lng != null) {
+    destinationParam = `${destination.lat},${destination.lng}`;
+  } else {
+    return { ok: false, reason: "no-destination" };
+  }
+
   const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json");
   url.searchParams.set("origins", originParam);
-  url.searchParams.set("destinations", destinationAddress);
+  url.searchParams.set("destinations", destinationParam);
   url.searchParams.set("mode", "driving");
   url.searchParams.set("units", "metric");
   url.searchParams.set("key", apiKey);
@@ -244,14 +252,27 @@ async function resolveDelivery({ db, apiKey, deliveryArea, deliveryAddress }) {
     };
   }
 
-  const destinationAddress = buildAddressString(deliveryAddress || {});
-  if (!destinationAddress) {
-    return { httpStatus: 400, body: { available: false, error: "invalid-address", message: "Please provide a complete delivery address." } };
+  // A real, SELECTED Google Place is required — placeId plus coordinates
+  // together are what prove a genuine suggestion was chosen (Places
+  // Autocomplete always returns both for a selected prediction). Raw typed
+  // text alone is never trusted as a destination, even if it happens to
+  // look like a complete address — see Phase 13 spec section B.3.
+  const place = deliveryAddress || {};
+  const placeId = typeof place.placeId === "string" ? place.placeId.trim() : "";
+  const latitude = Number(place.latitude);
+  const longitude = Number(place.longitude);
+  const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+  if (!placeId && !hasCoords) {
+    return {
+      httpStatus: 400,
+      body: { available: false, error: "invalid-address", message: "Please select a delivery address from the suggestions." },
+    };
   }
 
   const distanceResult = await calculateDrivingDistanceKm({
     origin: settings.origin || {},
-    destinationAddress,
+    destination: { placeId: placeId || null, lat: hasCoords ? latitude : null, lng: hasCoords ? longitude : null },
     apiKey,
   });
 
@@ -311,7 +332,6 @@ module.exports = {
   validateDeliverySettings,
   getDeliverySettings,
   findBracket,
-  buildAddressString,
   calculateDrivingDistanceKm,
   resolveDelivery,
 };

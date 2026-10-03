@@ -3,7 +3,7 @@
 // server-side regardless of what the UI shows — see order-actions.js and
 // the corresponding Netlify Functions).
 
-import { fetchOrderById, orderStatusOptionsForFulfillment, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, DELIVERY_AREA_LABELS, PAYMENT_METHOD_LABELS } from "../firebase/orders-helpers.js";
+import { fetchOrderById, orderStatusOptionsForFulfillment, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, DELIVERY_AREA_LABELS, PAYMENT_METHOD_LABELS, orderSourceLabel } from "../firebase/orders-helpers.js";
 import { updateOrderStatus, updatePaymentStatus, updateOrderNotes, updateOrderTestFlag, cancelOrder, deleteOrder, getPaymentProof } from "./order-actions.js";
 
 const stateEl = document.getElementById("orderState");
@@ -77,6 +77,8 @@ function render() {
   testBadge.textContent = order.isTest ? "TEST" : "LIVE";
   testBadge.className = `badge ${order.isTest ? "badge-test" : "badge-live"}`;
 
+  document.getElementById("odSourceBadge").textContent = orderSourceLabel(order);
+
   const statusPill = document.getElementById("odStatusPill");
   statusPill.textContent = ORDER_STATUS_LABELS[order.orderStatus] || order.orderStatus;
   statusPill.className = `status-pill status-${order.orderStatus}`;
@@ -88,6 +90,7 @@ function render() {
   document.getElementById("odCustomerName").textContent = order.customerName || "";
   document.getElementById("odPhone").textContent = order.phone || "";
   document.getElementById("odEmail").textContent = order.email || "—";
+  document.getElementById("odOrderSource").textContent = orderSourceLabel(order);
 
   document.getElementById("odProductImage").src = firstItem.image || "";
   document.getElementById("odProductName").textContent = firstItem.name || "";
@@ -104,8 +107,30 @@ function render() {
   const deliveryFields = document.getElementById("odDeliveryFields");
   if (order.fulfillmentMethod === "delivery") {
     deliveryFields.hidden = false;
+    const address = order.deliveryAddress || {};
     document.getElementById("odDeliveryArea").textContent = DELIVERY_AREA_LABELS[order.deliveryArea] || order.deliveryArea || "";
-    document.getElementById("odDeliveryAddress").textContent = formatDeliveryAddress(order.deliveryArea, order.deliveryAddress);
+    document.getElementById("odDeliveryAddress").textContent = formatDeliveryAddress(order.deliveryArea, address);
+
+    // unitDetails (external) / unitNumber (rosewood) are shown separately
+    // from the main address line where relevant — rosewood's unit is
+    // already folded into formatDeliveryAddress(), so this row is only
+    // ever populated for external orders using the new Places-based shape.
+    const unitDetailsRow = document.getElementById("odUnitDetailsRow");
+    if (address.unitDetails) {
+      unitDetailsRow.hidden = false;
+      document.getElementById("odUnitDetails").textContent = address.unitDetails;
+    } else {
+      unitDetailsRow.hidden = true;
+    }
+
+    const instructionsRow = document.getElementById("odInstructionsRow");
+    if (address.instructions) {
+      instructionsRow.hidden = false;
+      document.getElementById("odInstructions").textContent = address.instructions;
+    } else {
+      instructionsRow.hidden = true;
+    }
+
     document.getElementById("odDistance").textContent = order.deliveryDistanceKm != null ? `${order.deliveryDistanceKm} km` : "—";
     document.getElementById("odDeliveryFee").textContent = formatPeso(order.deliveryFee);
     document.getElementById("odPricingType").textContent = order.deliveryPricingType || "—";
@@ -149,6 +174,11 @@ function formatDeliveryAddress(area, address) {
   if (area === "acacia") {
     return [address.addressLine, address.barangay].filter(Boolean).join(", ");
   }
+  // external — orders placed since the Google Places upgrade store a
+  // single selected formattedAddress; older orders still have the legacy
+  // free-text addressLine/barangay/city fields. Displayed exactly as
+  // originally stored either way — never recalculated or re-geocoded.
+  if (address.formattedAddress) return address.formattedAddress;
   return [address.addressLine, address.barangay, address.city].filter(Boolean).join(", ");
 }
 

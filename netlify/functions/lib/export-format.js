@@ -44,6 +44,8 @@ const FULFILLMENT_LABELS = {
   delivery: "Delivery",
 };
 
+const { ORDER_SOURCE_LABELS } = require("./order-source");
+
 function firstItem(order) {
   return (order.items && order.items[0]) || {};
 }
@@ -85,6 +87,25 @@ function providerLabel(order) {
   }
 }
 
+// Phase 13: mirrors admin/order.js's and order-status.js's own
+// formatDeliveryAddress() (duplicated here for the same reason as the
+// label maps above — this file is server-side CommonJS, those are ES
+// modules). external orders placed since the Google Places upgrade store
+// a single selected formattedAddress; older orders still have the legacy
+// free-text fields — shown exactly as originally stored either way, never
+// recalculated.
+function formatDeliveryAddressForExport(area, address) {
+  if (!address) return "";
+  if (area === "rosewood") {
+    return [address.building, address.unitNumber ? `Unit ${address.unitNumber}` : ""].filter(Boolean).join(", ");
+  }
+  if (area === "acacia") {
+    return [address.addressLine, address.barangay].filter(Boolean).join(", ");
+  }
+  if (address.formattedAddress) return address.formattedAddress;
+  return [address.addressLine, address.barangay, address.city].filter(Boolean).join(", ");
+}
+
 // Each column's `get` returns the RAW value for both export formats:
 // string | number | boolean-as-YES/NO-string | Date | null. Both the xlsx
 // and csv writers (export-orders.js) branch on typeof/instanceof to render
@@ -108,6 +129,16 @@ const EXPORT_COLUMNS = [
     header: "Delivery Area",
     get: (o) => (o.fulfillmentMethod === "delivery" ? DELIVERY_AREA_LABELS[o.deliveryArea] || o.deliveryArea || "" : ""),
   },
+  {
+    header: "Delivery Address",
+    get: (o) => (o.fulfillmentMethod === "delivery" ? formatDeliveryAddressForExport(o.deliveryArea, o.deliveryAddress) : ""),
+  },
+  // Only populated for "external" orders using the Places-based address
+  // shape — Rosewood/Acacia's own unit/building info is already folded
+  // into the Delivery Address column above.
+  { header: "Unit / Building Details", get: (o) => (o.deliveryArea === "external" ? (o.deliveryAddress || {}).unitDetails || "" : "") },
+  { header: "Delivery Latitude", get: (o) => (o.deliveryArea === "external" ? numOrNull((o.deliveryAddress || {}).latitude) : null), isNumber: true },
+  { header: "Delivery Longitude", get: (o) => (o.deliveryArea === "external" ? numOrNull((o.deliveryAddress || {}).longitude) : null), isNumber: true },
   // Blank for pickup and the fixed zones (Rosewood/Acacia) — only "external"
   // delivery orders ever have a real recorded distance. See Phase 10 spec
   // section 13.
@@ -125,6 +156,10 @@ const EXPORT_COLUMNS = [
   { header: "Duplicate Reference", get: (o) => boolLabel(Boolean(o.duplicatePaymentReference)) },
   { header: "Amount Mismatch", get: (o) => boolLabel(Boolean(o.paymentAmountMismatch)) },
   { header: "Order Status", get: (o) => ORDER_STATUS_LABELS[o.orderStatus] || o.orderStatus || "" },
+  // Orders created before this field existed have no orderSource stored at
+  // all — they were all placed through the website, so that's the correct
+  // label to backfill on display, not an empty cell.
+  { header: "Order Source", get: (o) => ORDER_SOURCE_LABELS[o.orderSource || "website"] || o.orderSource || "" },
   { header: "Order Type", get: (o) => (o.isTest ? "TEST" : "LIVE") },
   { header: "Customer Notes", get: (o) => o.customerNotes || "" },
   { header: "Admin Notes", get: (o) => o.adminNotes || "" },

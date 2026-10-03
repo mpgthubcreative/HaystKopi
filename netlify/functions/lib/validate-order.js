@@ -20,6 +20,76 @@ function str(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+// Shared by validateOrderInput (website checkout) and
+// validate-admin-order.js (staff-entered orders) — the exact same
+// per-area field rules apply regardless of who's placing the order, so
+// there is exactly one definition of "what a rosewood/acacia/external
+// address must contain." Returns { errors, deliveryArea, deliveryAddress }.
+//
+// deliveryArea === null (invalid/missing) falls through with no address
+// validation — the deliveryArea error alone is enough to reject the
+// request; no need to also guess at address shape.
+function validateDeliveryAreaAndAddress(fulfillment, rawDeliveryArea, deliveryAddressRaw) {
+  const errors = {};
+  let deliveryArea = null;
+  let deliveryAddress = null;
+
+  if (fulfillment !== "delivery") {
+    return { errors, deliveryArea, deliveryAddress };
+  }
+
+  deliveryArea = DELIVERY_AREAS.includes(rawDeliveryArea) ? rawDeliveryArea : null;
+  if (!deliveryArea) errors.deliveryArea = "Choose a delivery area.";
+
+  if (deliveryArea === "rosewood") {
+    const building = str(deliveryAddressRaw.building);
+    const unitNumber = str(deliveryAddressRaw.unitNumber);
+    if (!building) errors.building = "Building/Tower is required.";
+    if (!unitNumber) errors.unitNumber = "Unit number is required.";
+    deliveryAddress = {
+      building,
+      unitNumber,
+      instructions: str(deliveryAddressRaw.instructions),
+    };
+  } else if (deliveryArea === "acacia") {
+    const addressLine = str(deliveryAddressRaw.addressLine);
+    if (!addressLine) errors.addressLine = "Address/Building/Cluster is required.";
+    deliveryAddress = {
+      addressLine,
+      barangay: str(deliveryAddressRaw.barangay),
+      landmark: str(deliveryAddressRaw.landmark),
+      instructions: str(deliveryAddressRaw.instructions),
+    };
+  } else if (deliveryArea === "external") {
+    // Phase 13: a real Google Place must have been SELECTED — placeId plus
+    // real coordinates together are what prove a genuine suggestion was
+    // chosen (a plain typed address, even a complete-looking one, is never
+    // accepted on its own). See lib/delivery.js's resolveDelivery(), which
+    // independently re-checks this same requirement before ever calling
+    // the Distance Matrix API.
+    const formattedAddress = str(deliveryAddressRaw.formattedAddress).slice(0, 300);
+    const placeId = str(deliveryAddressRaw.placeId).slice(0, 200);
+    const latitude = Number(deliveryAddressRaw.latitude);
+    const longitude = Number(deliveryAddressRaw.longitude);
+    const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+    if (!formattedAddress || !placeId || !hasCoords) {
+      errors.deliveryAddress = "Please select a delivery address from the suggestions.";
+    }
+
+    deliveryAddress = {
+      formattedAddress,
+      placeId,
+      latitude: hasCoords ? latitude : null,
+      longitude: hasCoords ? longitude : null,
+      unitDetails: str(deliveryAddressRaw.unitDetails).slice(0, 200),
+      instructions: str(deliveryAddressRaw.instructions).slice(0, 500),
+    };
+  }
+
+  return { errors, deliveryArea, deliveryAddress };
+}
+
 // Returns { ok, errors, data }. `data` only ever contains fields this
 // function itself derived/sanitized — it deliberately has no path for a
 // client-sent price/subtotal/total to flow through.
@@ -45,51 +115,9 @@ function validateOrderInput(payload) {
   const fulfillment = body.fulfillment === "pickup" || body.fulfillment === "delivery" ? body.fulfillment : null;
   if (!fulfillment) errors.fulfillment = "Choose Pickup or Delivery.";
 
-  let deliveryArea = null;
-  let deliveryAddress = null;
-
-  if (fulfillment === "delivery") {
-    deliveryArea = DELIVERY_AREAS.includes(body.deliveryArea) ? body.deliveryArea : null;
-    if (!deliveryArea) errors.deliveryArea = "Choose a delivery area.";
-
-    if (deliveryArea === "rosewood") {
-      const building = str(deliveryAddressRaw.building);
-      const unitNumber = str(deliveryAddressRaw.unitNumber);
-      if (!building) errors.building = "Building/Tower is required.";
-      if (!unitNumber) errors.unitNumber = "Unit number is required.";
-      deliveryAddress = {
-        building,
-        unitNumber,
-        instructions: str(deliveryAddressRaw.instructions),
-      };
-    } else if (deliveryArea === "acacia") {
-      const addressLine = str(deliveryAddressRaw.addressLine);
-      if (!addressLine) errors.addressLine = "Address/Building/Cluster is required.";
-      deliveryAddress = {
-        addressLine,
-        barangay: str(deliveryAddressRaw.barangay),
-        landmark: str(deliveryAddressRaw.landmark),
-        instructions: str(deliveryAddressRaw.instructions),
-      };
-    } else if (deliveryArea === "external") {
-      const addressLine = str(deliveryAddressRaw.addressLine);
-      const barangay = str(deliveryAddressRaw.barangay);
-      const city = str(deliveryAddressRaw.city);
-      if (!addressLine) errors.addressLine = "Address is required.";
-      if (!barangay) errors.barangay = "Barangay is required.";
-      if (!city) errors.city = "City/Municipality is required.";
-      deliveryAddress = {
-        addressLine,
-        barangay,
-        city,
-        landmark: str(deliveryAddressRaw.landmark),
-        instructions: str(deliveryAddressRaw.instructions),
-      };
-    }
-    // deliveryArea === null (invalid/missing) falls through with no address
-    // validation — the deliveryArea error above is enough to reject the
-    // request; we don't also need to guess at address shape.
-  }
+  const addressResult = validateDeliveryAreaAndAddress(fulfillment, body.deliveryArea, deliveryAddressRaw);
+  Object.assign(errors, addressResult.errors);
+  const { deliveryArea, deliveryAddress } = addressResult;
 
   const allowedPayments = fulfillment ? PAYMENT_METHODS_BY_FULFILLMENT[fulfillment] : [];
   const paymentMethod = typeof body.paymentMethod === "string" ? body.paymentMethod : null;
@@ -131,4 +159,11 @@ function validateOrderInput(payload) {
   };
 }
 
-module.exports = { validateOrderInput };
+module.exports = {
+  validateOrderInput,
+  validateDeliveryAreaAndAddress,
+  DELIVERY_AREAS,
+  MOBILE_PATTERN,
+  EMAIL_PATTERN,
+  str,
+};

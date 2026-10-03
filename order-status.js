@@ -143,6 +143,10 @@ function formatDeliveryAddress(area, address) {
   if (area === "acacia") {
     return [address.addressLine, address.barangay].filter(Boolean).join(", ");
   }
+  // external — new orders store a single selected formattedAddress; older
+  // orders still have the legacy free-text fields. Shown exactly as
+  // originally stored either way.
+  if (address.formattedAddress) return address.formattedAddress;
   return [address.addressLine, address.barangay, address.city].filter(Boolean).join(", ");
 }
 

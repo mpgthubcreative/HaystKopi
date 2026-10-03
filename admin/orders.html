@@ -54,6 +54,7 @@
           <option value="desc">Newest first</option>
           <option value="asc">Oldest first</option>
         </select>
+        <button type="button" id="newOrderBtn" class="btn-primary-sm">+ New Order</button>
         <button type="button" id="exportBtn" class="btn-quiet">Export</button>
       </div>
 
@@ -217,6 +218,167 @@
       <button type="button" id="downloadCsvBtn" class="btn-quiet">Download CSV</button>
       <button type="button" id="downloadExcelBtn" class="btn-primary-sm">Download Excel</button>
     </div>
+  </div>
+</div>
+
+<div id="newOrderModal" class="modal-overlay" hidden>
+  <div class="modal-box new-order-box">
+    <h2>New Order</h2>
+    <p class="panel-note">For a sale received outside the website — Facebook, Instagram, Messenger, phone, or walk-in. It's saved in the same orders list as website orders.</p>
+
+    <form id="newOrderForm" novalidate>
+      <div class="field-row">
+        <div class="field">
+          <label for="noCustomerName">Customer Name</label>
+          <input type="text" id="noCustomerName" autocomplete="off">
+          <p class="field-error" data-error-for="noCustomerName" hidden></p>
+        </div>
+        <div class="field">
+          <label for="noMobile">Mobile Number</label>
+          <input type="tel" id="noMobile" placeholder="09XXXXXXXXX" autocomplete="off">
+          <p class="field-error" data-error-for="noMobile" hidden></p>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="noEmail">Email <span class="optional-tag">(optional)</span></label>
+          <input type="email" id="noEmail" autocomplete="off">
+          <p class="field-error" data-error-for="noEmail" hidden></p>
+        </div>
+        <div class="field">
+          <label for="noOrderSource">Order Source</label>
+          <select id="noOrderSource">
+            <option value="">Choose…</option>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="messenger">Messenger</option>
+            <option value="phone">Phone</option>
+            <option value="walk-in">Walk-in</option>
+            <option value="manual">Manual / Other</option>
+          </select>
+          <p class="field-error" data-error-for="noOrderSource" hidden></p>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="noProduct">Product</label>
+          <select id="noProduct">
+            <option value="">Choose…</option>
+          </select>
+          <p class="field-error" data-error-for="noProduct" hidden></p>
+        </div>
+        <div class="field">
+          <label for="noQuantity">Quantity</label>
+          <input type="number" id="noQuantity" min="1" step="1" value="1">
+          <p class="field-error" data-error-for="noQuantity" hidden></p>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="noFulfillment">Fulfillment</label>
+          <select id="noFulfillment">
+            <option value="pickup">Pickup</option>
+            <option value="delivery">Delivery</option>
+          </select>
+          <p class="field-error" data-error-for="noFulfillment" hidden></p>
+        </div>
+        <div class="field">
+          <label for="noPaymentMethod">Payment Method</label>
+          <select id="noPaymentMethod"></select>
+          <p class="field-error" data-error-for="noPaymentMethod" hidden></p>
+        </div>
+      </div>
+
+      <div id="noDeliveryPanel" class="delivery-area-fields" hidden>
+        <div class="field">
+          <label for="noDeliveryArea">Delivery Area</label>
+          <select id="noDeliveryArea">
+            <option value="">Choose…</option>
+            <option value="rosewood">Rosewood</option>
+            <option value="acacia">Acacia Estates</option>
+            <option value="external">Outside Acacia Estates</option>
+          </select>
+          <p class="field-error" data-error-for="noDeliveryArea" hidden></p>
+        </div>
+
+        <div id="noRosewoodFields" class="delivery-area-subfields" hidden>
+          <div class="field-row">
+            <div class="field">
+              <label for="noRosewoodBuilding">Building / Tower</label>
+              <input type="text" id="noRosewoodBuilding">
+              <p class="field-error" data-error-for="noBuilding" hidden></p>
+            </div>
+            <div class="field">
+              <label for="noRosewoodUnit">Unit Number</label>
+              <input type="text" id="noRosewoodUnit">
+              <p class="field-error" data-error-for="noUnitNumber" hidden></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="noAcaciaFields" class="delivery-area-subfields" hidden>
+          <div class="field">
+            <label for="noAcaciaAddress">Address / Building / Cluster</label>
+            <input type="text" id="noAcaciaAddress">
+            <p class="field-error" data-error-for="noAcaciaAddressLine" hidden></p>
+          </div>
+          <div class="field">
+            <label for="noAcaciaBarangay">Barangay <span class="optional-tag">(optional)</span></label>
+            <input type="text" id="noAcaciaBarangay">
+          </div>
+        </div>
+
+        <div id="noExternalFields" class="delivery-area-subfields" hidden>
+          <div class="field place-field">
+            <label for="noPlaceSearch">Delivery Address / Location</label>
+            <input type="text" id="noPlaceSearch" autocomplete="off" placeholder="Search address, building, subdivision, condo, landmark…">
+            <div id="noPlaceSuggestions" class="place-suggestions" hidden></div>
+            <p class="field-error" data-error-for="noDeliveryAddress" hidden></p>
+          </div>
+          <div id="noSelectedPlace" class="selected-place-box" hidden>
+            <span class="selected-place-label">Selected:</span>
+            <span id="noSelectedPlaceText" class="selected-place-text"></span>
+          </div>
+          <div class="field">
+            <label for="noExternalUnitDetails">Unit / House / Building Details <span class="optional-tag">(optional)</span></label>
+            <input type="text" id="noExternalUnitDetails">
+          </div>
+        </div>
+
+        <div id="noDeliveryCalcState" class="delivery-calc-state" hidden></div>
+      </div>
+
+      <div class="field">
+        <label for="noPaymentStatus">Payment Status</label>
+        <select id="noPaymentStatus">
+          <option value="UNPAID">Unpaid</option>
+          <option value="AWAITING_VERIFICATION">Awaiting Verification</option>
+          <option value="PAID">Paid</option>
+        </select>
+        <p class="field-error" data-error-for="noPaymentStatus" hidden></p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="noCustomerNotes">Customer Notes <span class="optional-tag">(optional)</span></label>
+          <textarea id="noCustomerNotes"></textarea>
+        </div>
+        <div class="field">
+          <label for="noAdminNotes">Admin Notes <span class="optional-tag">(optional)</span></label>
+          <textarea id="noAdminNotes"></textarea>
+        </div>
+      </div>
+
+      <p id="noFormMessage" class="save-status" hidden></p>
+
+      <div class="modal-actions">
+        <button type="button" id="noCancelBtn" class="btn-quiet">Cancel</button>
+        <button type="submit" id="noSubmitBtn" class="btn-primary-sm">Create Order</button>
+      </div>
+    </form>
   </div>
 </div>
 

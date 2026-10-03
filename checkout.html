@@ -136,27 +136,20 @@
               </div>
 
               <div id="deliveryAreaExternal" class="delivery-area-fields" hidden>
-                <p class="panel-note">Delivery fee depends on driving distance from our store. Fill in your address, then calculate delivery to see availability and pricing.</p>
-                <div class="field">
-                  <label for="externalAddressLine">Address Line</label>
-                  <input type="text" id="externalAddressLine" name="externalAddressLine" autocomplete="address-line1">
-                  <p class="field-error" data-error-for="externalAddressLine" hidden></p>
+                <p class="panel-note">Delivery fee depends on driving distance from our store. Search and select your address, then calculate delivery to see availability and pricing.</p>
+                <div class="field place-field">
+                  <label for="externalPlaceSearch">Delivery Address / Location</label>
+                  <input type="text" id="externalPlaceSearch" autocomplete="off" placeholder="Search address, building, subdivision, condo, landmark…">
+                  <div id="externalPlaceSuggestions" class="place-suggestions" hidden></div>
+                  <p class="field-error" data-error-for="deliveryAddress" hidden></p>
                 </div>
-                <div class="field-row">
-                  <div class="field">
-                    <label for="externalBarangay">Barangay</label>
-                    <input type="text" id="externalBarangay" name="externalBarangay">
-                    <p class="field-error" data-error-for="externalBarangay" hidden></p>
-                  </div>
-                  <div class="field">
-                    <label for="externalCity">City / Municipality</label>
-                    <input type="text" id="externalCity" name="externalCity">
-                    <p class="field-error" data-error-for="externalCity" hidden></p>
-                  </div>
+                <div id="externalSelectedPlace" class="selected-place-box" hidden>
+                  <span class="selected-place-label">Selected:</span>
+                  <span id="externalSelectedPlaceText" class="selected-place-text"></span>
                 </div>
                 <div class="field">
-                  <label for="externalLandmark">Landmark <span class="optional-tag">(optional)</span></label>
-                  <input type="text" id="externalLandmark" name="externalLandmark">
+                  <label for="externalUnitDetails">Unit / House / Building Details <span class="optional-tag">(optional)</span></label>
+                  <input type="text" id="externalUnitDetails" placeholder="e.g. Unit 12B, Tower 3">
                 </div>
                 <div class="field">
                   <label for="externalInstructions">Delivery Instructions <span class="optional-tag">(optional)</span></label>

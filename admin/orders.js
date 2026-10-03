@@ -15,9 +15,11 @@ import {
   PAYMENT_STATUS_LABELS,
   DELIVERY_AREA_LABELS,
   PAYMENT_METHOD_LABELS,
+  orderSourceLabel,
 } from "../firebase/orders-helpers.js";
 import { requestOrdersExport, downloadBlob } from "./export-actions.js";
 import { updateOrderStatus, updatePaymentStatus, cancelOrder, getPaymentProof } from "./order-actions.js";
+import { initNewOrderModal } from "./new-order.js";
 
 const stateEl = document.getElementById("ordersState");
 const listEl = document.getElementById("ordersList");
@@ -74,6 +76,13 @@ let proofModalOrderId = null;
 
 document.addEventListener("admin:ready", async () => {
   await loadPage(true);
+  initNewOrderModal({
+    // Reload from Firestore rather than splicing the response in locally —
+    // create-admin-order's response is a trimmed confirmation shape (see
+    // lib/order-transaction.js's return value), not the full order document
+    // buildOrderCard() needs (items array, timestamps, etc.).
+    onCreated: () => loadPage(true),
+  });
 });
 
 async function loadPage(reset) {
@@ -214,6 +223,7 @@ function buildOrderCard(order) {
       <span class="order-number">${escapeHtml(order.orderNumber || order.id)}</span>
       <span class="order-date">${escapeHtml(formatDate(order.createdAt))}</span>
       <span class="badge ${order.isTest ? "badge-test" : "badge-live"}">${order.isTest ? "TEST" : "LIVE"}</span>
+      <span class="badge badge-source">${escapeHtml(orderSourceLabel(order))}</span>
       <span class="status-pill status-${escapeAttr(order.orderStatus)}" data-role="status-pill">${escapeHtml(ORDER_STATUS_LABELS[order.orderStatus] || order.orderStatus)}</span>
     </div>
     <div class="order-card-meta">

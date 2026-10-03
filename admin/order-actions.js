@@ -55,3 +55,10 @@ export const getPaymentProof = (orderId) =>
 
 export const deleteOrder = (orderId) =>
   callSecureEndpoint("delete-order", { orderId });
+
+// Records a sale received outside the website (Facebook, Instagram,
+// Messenger, phone, walk-in) into the SAME orders collection — see
+// netlify/functions/create-admin-order.js. `payload` matches
+// lib/validate-admin-order.js's expected shape.
+export const createAdminOrder = (payload) =>
+  callSecureEndpoint("create-admin-order", payload);

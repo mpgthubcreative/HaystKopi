@@ -51,6 +51,25 @@ export const PAYMENT_METHOD_LABELS = {
   "cash-on-delivery": "Cash on Delivery",
 };
 
+// Mirrors netlify/functions/lib/order-source.js — duplicated here for the
+// same reason as the label maps above (that one is server-side CommonJS,
+// this is a browser ES module). Orders from before this field existed have
+// no orderSource stored at all; they were all placed through the website.
+export const ORDER_SOURCE_LABELS = {
+  website: "Website",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  messenger: "Messenger",
+  phone: "Phone",
+  "walk-in": "Walk-in",
+  manual: "Manual / Other",
+};
+
+export function orderSourceLabel(order) {
+  const value = (order && order.orderSource) || "website";
+  return ORDER_SOURCE_LABELS[value] || value;
+}
+
 // Same fulfillment/status compatibility rule the backend enforces
 // (netlify/functions/lib/order-status.js) — kept here too so the status
 // dropdown never even offers an option the backend would reject.

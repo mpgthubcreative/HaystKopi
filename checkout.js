@@ -9,6 +9,8 @@
 // ignores those fields even if a tampered client sent them anyway.
 
 import { fetchProductBySlug, isInStock } from "./firebase/products-helpers.js";
+import { createPlaceAutocomplete } from "./places-autocomplete.js";
+import { GOOGLE_PLACES_BROWSER_KEY } from "./places-config.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -39,11 +41,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const acaciaLandmarkInput = document.getElementById("acaciaLandmark");
   const acaciaInstructionsInput = document.getElementById("acaciaInstructions");
 
-  const externalAddressLineInput = document.getElementById("externalAddressLine");
-  const externalBarangayInput = document.getElementById("externalBarangay");
-  const externalCityInput = document.getElementById("externalCity");
-  const externalLandmarkInput = document.getElementById("externalLandmark");
+  const externalPlaceSearchInput = document.getElementById("externalPlaceSearch");
+  const externalPlaceSuggestions = document.getElementById("externalPlaceSuggestions");
+  const externalSelectedPlaceBox = document.getElementById("externalSelectedPlace");
+  const externalSelectedPlaceText = document.getElementById("externalSelectedPlaceText");
+  const externalUnitDetailsInput = document.getElementById("externalUnitDetails");
   const externalInstructionsInput = document.getElementById("externalInstructions");
+
+  // Set only once the customer selects a real Google Places suggestion —
+  // never from typed text alone. Any edit to the search field after a
+  // selection clears this back to null (see the autocomplete's
+  // onInvalidate below), which is also what blocks "Calculate Delivery"
+  // and final submit until a fresh selection is made.
+  let selectedExternalPlace = null;
 
   const calculateDeliveryBtn = document.getElementById("calculateDeliveryBtn");
   const deliveryCalcState = document.getElementById("deliveryCalcState");
@@ -292,19 +302,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   calculateDeliveryBtn.addEventListener("click", () => {
+    setFieldError("deliveryAddress", "");
+
+    if (!selectedExternalPlace) {
+      setFieldError("deliveryAddress", "Please select an address from the suggestions.");
+      return;
+    }
+
     calculateDelivery("external", {
-      addressLine: externalAddressLineInput.value.trim(),
-      barangay: externalBarangayInput.value.trim(),
-      city: externalCityInput.value.trim(),
+      placeId: selectedExternalPlace.placeId,
+      formattedAddress: selectedExternalPlace.formattedAddress,
+      latitude: selectedExternalPlace.lat,
+      longitude: selectedExternalPlace.lng,
     });
   });
 
-  // Editing the address after a calculation invalidates it — the displayed
-  // fee must never silently stay attached to a stale address.
-  [externalAddressLineInput, externalBarangayInput, externalCityInput].forEach((input) => {
-    input.addEventListener("input", () => {
+  function invalidateExternalPlace(message) {
+    selectedExternalPlace = null;
+    externalSelectedPlaceBox.hidden = true;
+    externalSelectedPlaceText.textContent = "";
+    if (deliveryCalculation) clearDeliveryCalculation();
+    if (message) setFieldError("deliveryAddress", message);
+  }
+
+  createPlaceAutocomplete({
+    inputEl: externalPlaceSearchInput,
+    suggestionsEl: externalPlaceSuggestions,
+    apiKey: GOOGLE_PLACES_BROWSER_KEY,
+    onSelect: (place) => {
+      setFieldError("deliveryAddress", "");
+      selectedExternalPlace = place;
+      externalSelectedPlaceText.textContent = place.formattedAddress;
+      externalSelectedPlaceBox.hidden = false;
       if (deliveryCalculation) clearDeliveryCalculation();
-    });
+    },
+    onInvalidate: invalidateExternalPlace,
   });
 
   /* ---------- Summary rendering ---------- */
@@ -412,10 +444,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Maps backend fieldErrors keys to this form's actual input names.
-  // "addressLine"/"barangay"/"city" are ambiguous server-side (acacia and
-  // external both use those concepts) — this function resolves them using
-  // whichever delivery area is currently selected, since only one area's
-  // fields are ever visible/relevant at submit time.
+  // "addressLine" is ambiguous server-side (acacia is the only area left
+  // using that concept now that external uses a single selected-place
+  // field instead) — resolved using whichever delivery area is currently
+  // selected, since only one area's fields are ever visible at submit time.
   function mapServerFieldToFormField(serverField) {
     const staticMap = {
       fullName: "fullName",
@@ -426,15 +458,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       paymentMethod: "paymentMethod",
       building: "building",
       unitNumber: "unitNumber",
+      deliveryAddress: "deliveryAddress",
     };
     if (staticMap[serverField]) return staticMap[serverField];
 
     if (serverField === "addressLine") {
-      const area = getSelectedValue("deliveryArea");
-      return area === "acacia" ? "acaciaAddressLine" : "externalAddressLine";
+      return "acaciaAddressLine";
     }
-    if (serverField === "barangay") return "externalBarangay";
-    if (serverField === "city") return "externalCity";
 
     return null;
   }
@@ -459,11 +489,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       };
     }
     if (deliveryArea === "external") {
+      if (!selectedExternalPlace) return null;
       return {
-        addressLine: externalAddressLineInput.value.trim(),
-        barangay: externalBarangayInput.value.trim(),
-        city: externalCityInput.value.trim(),
-        landmark: externalLandmarkInput.value.trim(),
+        formattedAddress: selectedExternalPlace.formattedAddress,
+        placeId: selectedExternalPlace.placeId,
+        latitude: selectedExternalPlace.lat,
+        longitude: selectedExternalPlace.lng,
+        unitDetails: externalUnitDetailsInput.value.trim(),
         instructions: externalInstructionsInput.value.trim(),
       };
     }
@@ -514,16 +546,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           valid = false;
         }
       } else if (deliveryArea === "external") {
-        if (!externalAddressLineInput.value.trim()) {
-          setFieldError("externalAddressLine", "Address is required.");
-          valid = false;
-        }
-        if (!externalBarangayInput.value.trim()) {
-          setFieldError("externalBarangay", "Barangay is required.");
-          valid = false;
-        }
-        if (!externalCityInput.value.trim()) {
-          setFieldError("externalCity", "City/Municipality is required.");
+        if (!selectedExternalPlace) {
+          setFieldError("deliveryAddress", "Please select an address from the suggestions.");
           valid = false;
         }
       }
