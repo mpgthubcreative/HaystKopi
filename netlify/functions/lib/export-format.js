@@ -173,4 +173,5 @@ module.exports = {
   FULFILLMENT_LABELS,
   EXPORT_COLUMNS,
   tsToDate,
+  formatDeliveryAddressForExport,
 };

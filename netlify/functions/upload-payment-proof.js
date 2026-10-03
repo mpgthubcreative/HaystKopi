@@ -127,11 +127,16 @@ exports.handler = async (event) => {
       paymentAmountMismatch,
       ocrRawText: ocrResult.ok ? ocrResult.rawText.slice(0, OCR_TEXT_STORAGE_LIMIT) : "",
       // A new image invalidates any previous confirmation — it was about a
-      // different screenshot.
+      // different screenshot. Resetting paymentProofNotifiedAt here too
+      // means confirm-payment-reference.js will send exactly one fresh
+      // "Payment Proof Submitted" email for THIS image, rather than
+      // staying silent because an earlier, different screenshot already
+      // triggered one.
       paymentReference: null,
       paymentReferenceConfirmed: false,
       paymentReferenceSource: null,
       duplicatePaymentReference: false,
+      paymentProofNotifiedAt: null,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

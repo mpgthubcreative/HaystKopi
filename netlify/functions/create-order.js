@@ -20,6 +20,7 @@ const { validateOrderInput } = require("./lib/validate-order");
 const { resolveDelivery } = require("./lib/delivery");
 const { respond, RequestError } = require("./lib/http");
 const { commitOrderInTransaction } = require("./lib/order-transaction");
+const { sendNewOrderEmail } = require("./lib/order-notifications");
 const { generateUploadToken, hashUploadToken, tokenExpiryTimestamp, CHECKOUT_TOKEN_TTL_MS } = require("./lib/payment-upload-token");
 const { normalizePhone } = require("./lib/phone");
 const { getPaymentSettings, buildPaymentInstructions, isPaymentMethodEnabled } = require("./lib/payment-settings");
@@ -192,7 +193,7 @@ exports.handler = async (event) => {
 
       // Idempotent replay (race with another in-flight identical request).
       if (orderSnap.exists) {
-        return safeReplayResult(orderRef, orderSnap.data());
+        return { ...safeReplayResult(orderRef, orderSnap.data()), isNewOrder: false };
       }
 
       const committed = await commitOrderInTransaction({
@@ -234,10 +235,43 @@ exports.handler = async (event) => {
         // narrow limitation, documented in the phase summary.
         paymentUploadToken,
         paymentInstructions,
+        isNewOrder: true,
       };
     });
 
-    return respond(200, { success: true, ...result });
+    // isNewOrder is only ever true on the branch that actually ran
+    // commitOrderInTransaction — both replay paths (the fast pre-check
+    // above and the in-transaction race check) short-circuit before
+    // reaching here, so a retried/duplicate clientRequestId can never
+    // trigger a second email. See lib/order-notifications.js's header for
+    // why this is awaited rather than fire-and-forget, and why a failure
+    // here is swallowed rather than failing the order.
+    const { isNewOrder, ...publicResult } = result;
+
+    if (isNewOrder) {
+      try {
+        await sendNewOrderEmail({
+          orderId: result.orderId,
+          orderNumber: result.orderNumber,
+          customerName: data.fullName,
+          phone: data.mobile,
+          productName: result.productName,
+          quantity: result.quantity,
+          fulfillmentMethod: data.fulfillment,
+          deliveryArea: data.fulfillment === "delivery" ? data.deliveryArea : null,
+          deliveryAddress: data.fulfillment === "delivery" ? data.deliveryAddress : null,
+          paymentMethod: data.paymentMethod,
+          paymentStatus: "UNPAID",
+          total: result.total,
+          orderSource: "website",
+          isTest: false,
+        });
+      } catch (err) {
+        console.error("create-order: new-order notification threw unexpectedly (order was still created):", err);
+      }
+    }
+
+    return respond(200, { success: true, ...publicResult });
   } catch (err) {
     if (err instanceof RequestError) {
       return respond(err.statusCode, { success: false, error: err.code, message: err.message });

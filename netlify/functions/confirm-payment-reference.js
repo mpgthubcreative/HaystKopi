@@ -12,6 +12,7 @@
 const { admin, db, initError } = require("./lib/firebase-admin");
 const { isUploadTokenValid } = require("./lib/payment-upload-token");
 const { respond, RequestError } = require("./lib/http");
+const { sendPaymentProofSubmittedEmail } = require("./lib/order-notifications");
 
 const MAX_BODY_BYTES = 2000;
 const MAX_REFERENCE_LENGTH = 50;
@@ -90,14 +91,39 @@ exports.handler = async (event) => {
       (docSnap) => docSnap.id !== orderId && docSnap.data().isTest !== true
     );
 
+    // Duplicate-notification guard: paymentProofNotifiedAt is reset to null
+    // by upload-payment-proof.js whenever a NEW screenshot comes in (same
+    // place that already resets paymentReference/paymentReferenceConfirmed
+    // for the same reason — a new image is a genuinely new submission). A
+    // customer retrying this exact submission (network blip, double-click)
+    // without re-uploading a new image will find the marker already set
+    // and get no second email.
+    const shouldNotify = !order.paymentProofNotifiedAt;
+
     await orderRef.update({
       paymentReference,
       paymentReferenceConfirmed: true,
       paymentReferenceSource: source,
       duplicatePaymentReference,
       paymentStatus: "AWAITING_VERIFICATION",
+      ...(shouldNotify ? { paymentProofNotifiedAt: admin.firestore.FieldValue.serverTimestamp() } : {}),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    if (shouldNotify) {
+      try {
+        await sendPaymentProofSubmittedEmail({
+          orderId,
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          paymentMethod: order.paymentMethod,
+          paymentReference,
+          total: order.total,
+        });
+      } catch (err) {
+        console.error("confirm-payment-reference: notification threw unexpectedly (reference was still confirmed):", err);
+      }
+    }
 
     return respond(200, {
       success: true,
