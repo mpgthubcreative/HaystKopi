@@ -9,6 +9,8 @@ import { fetchAllProducts, isInStock } from "./firebase/products-helpers.js";
 
 document.addEventListener('DOMContentLoaded', async () => {
 
+  const pageLoading = document.getElementById('pageLoading');
+  const productSection = document.getElementById('productSection');
   const mainImage = document.getElementById('mainImage');
   const thumbnailRow = document.getElementById('thumbnailRow');
   const productTitle = document.getElementById('productTitle');
@@ -52,6 +54,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!productNotice) return;
     productNotice.hidden = true;
     productNotice.textContent = '';
+  }
+
+  // Reveals the real product section and hides the loading spinner — called
+  // once from the success path (after the real product is fully rendered)
+  // and once from the error path (so an error message has somewhere visible
+  // to appear instead of staying hidden inside the still-loading section).
+  function revealProductSection() {
+    if (pageLoading) pageLoading.hidden = true;
+    if (productSection) productSection.hidden = false;
   }
 
   function showQtyLimitMessage(max) {
@@ -240,6 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       throw new Error('no-products');
     }
   } catch (err) {
+    revealProductSection();
     showProductNotice("We couldn't load product details right now. Please refresh the page.");
     return;
   }
@@ -263,11 +275,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Render the real product (price, volume, photos) as soon as it's
   // available, rather than waiting on the settings fetch below too — that
   // call hits a Netlify Function (cold-start latency on top of the
-  // network round trip) and was previously blocking this, leaving the
-  // static placeholder price/volume in the HTML on screen for several
-  // seconds before being replaced.
+  // network round trip) and was previously blocking this unnecessarily.
   const initialSlug = PRODUCTS[currentSlug] ? currentSlug : Object.keys(PRODUCTS)[0];
   selectProduct(initialSlug);
+
+  // Only reveal the section now that it's populated with real data — the
+  // section starts `hidden` in the HTML specifically so nobody ever sees
+  // the static placeholder content (the old P65.00/350ml/stock photo)
+  // get visibly replaced; they see a brief spinner instead, then the
+  // correct product, once.
+  revealProductSection();
 
   // Fail-closed: any error/missing field here leaves acceptingOrders false,
   // which keeps Buy Now disabled. Products and inventory still show either way

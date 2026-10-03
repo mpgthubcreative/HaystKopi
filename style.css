@@ -103,6 +103,47 @@ a:focus-visible {
   flex-direction: column;
 }
 
+/* .product sets its own `display`, which otherwise beats the browser's
+   default [hidden]{display:none} rule (same specificity, author
+   stylesheet wins) — see the matching .events[hidden] rule below for the
+   same issue. Without this, the hidden attribute silently fails to hide
+   the section while real product data is still loading, which is the
+   whole point of hiding it (avoids a flash of the static placeholder
+   price/photo/description being replaced once Firestore responds). */
+.product[hidden] {
+  display: none;
+}
+
+.page-loading {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.page-loading[hidden] {
+  display: none;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(59, 36, 22, 0.18);
+  border-top-color: var(--espresso);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .product-media {
   flex: none;
 }
