@@ -446,6 +446,14 @@ a:focus-visible {
   color: var(--bg);
 }
 
+/* .events sets its own `display`, which otherwise beats the browser's
+   default [hidden]{display:none} rule (same specificity, author stylesheet
+   wins) — without this, the `hidden` attribute alone silently fails to
+   hide an .events section. */
+.events[hidden] {
+  display: none;
+}
+
 .events-text {
   padding: 56px 16px 48px;
   display: flex;
