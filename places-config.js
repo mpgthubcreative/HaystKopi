@@ -8,4 +8,4 @@
 // delivery address search field will show a friendly "address search is
 // not configured yet" message instead of silently failing.
 
-export const GOOGLE_PLACES_BROWSER_KEY = "YOUR_PLACES_BROWSER_KEY";
+export const GOOGLE_PLACES_BROWSER_KEY = "AIzaSyD43aXogZx5fMQz_snjFl3jnMMIQEbUdc0";
