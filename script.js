@@ -247,9 +247,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   hideProductNotice();
   flavorButtons.forEach((btn) => { btn.disabled = false; });
 
+  // Render the real product (price, volume, photos) as soon as it's
+  // available, rather than waiting on the settings fetch below too — that
+  // call hits a Netlify Function (cold-start latency on top of the
+  // network round trip) and was previously blocking this, leaving the
+  // static placeholder price/volume in the HTML on screen for several
+  // seconds before being replaced.
+  const initialSlug = PRODUCTS[currentSlug] ? currentSlug : Object.keys(PRODUCTS)[0];
+  selectProduct(initialSlug);
+
   // Fail-closed: any error/missing field here leaves acceptingOrders false,
   // which keeps Buy Now disabled. Products and inventory still show either way
-  // — only the ability to buy is gated.
+  // — only the ability to buy is gated. Runs after the product is already
+  // visible, so this no longer delays the price/volume/photos.
   try {
     const settingsResponse = await fetch("/.netlify/functions/get-storefront-settings", { method: "POST" });
     const settingsResult = await settingsResponse.json();
@@ -264,7 +274,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     showStoreClosedNotice();
   }
 
-  const initialSlug = PRODUCTS[currentSlug] ? currentSlug : Object.keys(PRODUCTS)[0];
-  selectProduct(initialSlug);
+  // Buy Now's disabled state depends on acceptingOrders, which just
+  // changed — re-apply it now rather than waiting for the customer to
+  // trigger another render (e.g. by switching flavors).
+  renderStockAndQty(PRODUCTS[currentSlug]);
 
 });
